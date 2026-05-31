@@ -1,4 +1,5 @@
 # TrafficClaw
+<<<<<<< HEAD
 
 ```
  ████████╗██████╗  █████╗ ███████╗███████╗██╗ ██████╗
@@ -549,3 +550,4 @@ Most runners expose common options:
 ## License
 
 The project code and post-trained TrafficClaw model are released under the MIT License. Third-party models, datasets, simulators, and baseline systems remain governed by their respective licenses and terms of use.
+
