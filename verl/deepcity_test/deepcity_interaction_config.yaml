@@ -71,8 +71,8 @@ interaction:
           - "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           - "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
         sumo_config_highway_paths:
-          - "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
-          - "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+          - "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
+          - "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
         control_modules:
           - "bus_scheduling"
           - "signal_timing"
@@ -122,12 +122,12 @@ interaction:
           episodes: 1
 
         # highway_speed_limit alone (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "highway_speed_limit"
           episodes: 1
@@ -161,13 +161,13 @@ interaction:
           episodes: 1
 
         # signal_timing + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
@@ -187,26 +187,26 @@ interaction:
           episodes: 1
 
         # bus_scheduling + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
         # taxi_scheduling + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "taxi_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "taxi_scheduling"
             - "highway_speed_limit"
@@ -216,7 +216,7 @@ interaction:
 
         # ====== 5. All modules: signal + bus + taxi + highway (highway network) [Commented: 4 modules] ======
 
-        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
         #   control_modules:
         #     - "signal_timing"
         #     - "bus_scheduling"
@@ -224,7 +224,7 @@ interaction:
         #     - "highway_speed_limit"
         #   episodes: 1
 
-        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
         #   control_modules:
         #     - "signal_timing"
         #     - "bus_scheduling"
@@ -253,14 +253,14 @@ interaction:
         # ====== Manhattan ======
 
         # Val 0: signal + bus + highway (highway Manhattan)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
             - "highway_speed_limit"
 
         # Val 1: signal + highway (highway Manhattan)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
@@ -274,14 +274,14 @@ interaction:
         # ====== Queens ======
 
         # Val 3: signal + bus + highway (highway Queens)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
             - "highway_speed_limit"
 
         # Val 4: signal + highway (highway Queens)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"

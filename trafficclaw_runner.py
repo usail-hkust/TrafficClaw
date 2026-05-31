@@ -61,7 +61,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "ramp_metering": RunnerDefaults(
-        config="sumo_config_highway/Manhattan_highway/Manhattan.sumocfg",
+        config="sumo_config_highway/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,

@@ -33,9 +33,9 @@ MODULE_DESCRIPTIONS = {
 }
 
 HIGHWAY_REGIONS = [
-    ("manhattan", "Manhattan", "sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"),
-    ("queens", "Queens", "sumo_config_highway/Queens_highway/Queens.sumocfg"),
-    ("brooklyn", "Brooklyn", "sumo_config_highway/Brooklyn_highway/Brooklyn.sumocfg"),
+    ("manhattan", "Manhattan", "sumo_config_highway/Manhattan/Manhattan.sumocfg"),
+    ("queens", "Queens", "sumo_config_highway/Queens/Queens.sumocfg"),
+    ("brooklyn", "Brooklyn", "sumo_config_highway/Brooklyn/Brooklyn.sumocfg"),
 ]
 
 REGIONS = [
