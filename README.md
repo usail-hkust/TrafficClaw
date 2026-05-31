@@ -368,15 +368,6 @@ result = runner.run(
 )
 ```
 
-## Memory and Reflection
-
-TrafficClaw supports two memory mechanisms.
-
-- ESCC stores episode-local analysis through sandbox cache operations such as `save_cache()`, `load_cache()`, and `list_cache()`.
-- PSM summarizes completed optimization episodes into reusable procedural knowledge, including congestion patterns, coordination strategies, and failure modes.
-
-Memory and reflection are enabled in the main runners.
-
 ## GRPO Training with VeRL
 
 TrafficClaw includes a VeRL integration for agentic GRPO training. The training flow uses:
@@ -554,17 +545,6 @@ Most runners expose common options:
 - `--max-agent-turns`: maximum agent turns per checkpoint.
 - `--traffic-state-interval`: data collection interval.
 - `--query`: extra user instruction appended to the task prompt.
-
-## Data and Large Files
-
-This project may require large SUMO networks, routes, timetable files, and generated simulation records. Use Git LFS for large XML, JSON, route, and network files where appropriate.
-
-```bash
-git lfs install
-git lfs track "*.net.xml" "*.rou.xml" "*.add.xml" "*.json"
-```
-
-Some NYC network files can exceed common hosting limits. In that case, keep them outside Git and place or symlink them into the expected `sumo_config/` path before running experiments.
 
 ## License
 
