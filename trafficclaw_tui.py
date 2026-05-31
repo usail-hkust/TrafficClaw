@@ -33,15 +33,15 @@ MODULE_DESCRIPTIONS = {
 }
 
 HIGHWAY_REGIONS = [
-    ("manhattan", "Manhattan", "sumo_config_highway/Manhattan/Manhattan.sumocfg"),
-    ("queens", "Queens", "sumo_config_highway/Queens/Queens.sumocfg"),
-    ("brooklyn", "Brooklyn", "sumo_config_highway/Brooklyn/Brooklyn.sumocfg"),
+    ("manhattan", "Manhattan", "Data/sumo_config_highway/Manhattan/Manhattan.sumocfg"),
+    ("queens", "Queens", "Data/sumo_config_highway/Queens/Queens.sumocfg"),
+    ("brooklyn", "Brooklyn", "Data/sumo_config_highway/Brooklyn/Brooklyn.sumocfg"),
 ]
 
 REGIONS = [
-    ("manhattan", "Manhattan", "sumo_config/Manhattan/Manhattan.sumocfg"),
-    ("queens", "Queens", "sumo_config/Queens/Queens.sumocfg"),
-    ("brooklyn", "Brooklyn", "sumo_config/Brooklyn/Brooklyn.sumocfg"),
+    ("manhattan", "Manhattan", "Data/sumo_config/Manhattan/Manhattan.sumocfg"),
+    ("queens", "Queens", "Data/sumo_config/Queens/Queens.sumocfg"),
+    ("brooklyn", "Brooklyn", "Data/sumo_config/Brooklyn/Brooklyn.sumocfg"),
 ]
 
 HIGHWAY_CONFIG_MODULES = {"highway_speed_limit", "ramp_metering"}
@@ -197,7 +197,7 @@ def _ask_zone_config(modules: Sequence[str]) -> str:
     subtitle = (
         "Select SUMO region. Highway/ramp modules use highway config."
         if _needs_highway_config(modules)
-        else "Select SUMO region. Standard sumo_config will be used."
+        else "Select SUMO region. Standard Data/sumo_config will be used."
     )
     selected = _checkbox_select(
         title=title,

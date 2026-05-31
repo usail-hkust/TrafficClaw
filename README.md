@@ -227,6 +227,38 @@ export SILICONFLOW_API_KEY=...
 
 For custom OpenAI-compatible endpoints, pass `--base-url`.
 
+## Environment Data
+
+The SUMO environment data is hosted on Hugging Face:
+
+```text
+https://huggingface.co/datasets/TrafficClaw/TrafficClaw-Env-Data
+```
+
+The dataset is public and contains the project `Data/` directory. Its main contents are:
+
+- `Data/sumo_config/`: regular SUMO scenarios for Brooklyn, Manhattan, and Queens.
+- `Data/sumo_config_highway/`: highway-speed-limit scenarios for Brooklyn, Manhattan, and Queens.
+- Each region contains SUMO config files, network XML, OSM/PBF source files, routes, OD matrices, TAZ files, public-transit stops/flows, taxi demand/fleet files, and cached static/runtime network metadata.
+
+Download only the `Data/` tree into the TrafficClaw repository root:
+
+```bash
+cd /path/to/TrafficClaw
+pip install -U "huggingface_hub[cli]"
+hf download TrafficClaw/TrafficClaw-Env-Data \
+  --repo-type dataset \
+  --include "Data/**" \
+  --local-dir .
+```
+
+For GRPO training, replace the absolute `sumo_config_path` entries in `verl/deepcity_test/deepcity_interaction_config.yaml` with the downloaded root-relative paths such as:
+
+```yaml
+sumo_config_path: "Data/sumo_config/Manhattan/Upper_Manhattan.sumocfg"
+sumo_config_path: "Data/sumo_config_highway/Manhattan/Upper_Manhattan.sumocfg"
+```
+
 ## Quick Start
 
 The recommended way to run TrafficClaw is the built-in terminal UI. You do not need to assemble long CLI commands for everyday experiments.
@@ -466,4 +498,3 @@ Most runners expose common options:
 ## License
 
 The project code and post-trained TrafficClaw model are released under the MIT License. Third-party models, datasets, simulators, and baseline systems remain governed by their respective licenses and terms of use.
-
