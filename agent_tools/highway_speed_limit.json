@@ -1,0 +1,188 @@
+{
+  "data": [
+    {
+      "name": "zone_dict",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping zone_id to zone infrastructure information. Use zone_dict to find which highway edges belong to specific zones via the 'highway_edges' field. See zone_info.json for full documentation. Use directly: `zone_dict`, NOT `zone_dict()`.",
+      "data_format": {
+        "type": "dict",
+        "relevant_fields": {
+          "highway_edges": "List of highway edge IDs in this zone",
+          "highway_segments": "List of highway segment IDs (format: 'seg_{edge_id}')"
+        }
+      },
+      "usage_example": "```python\n# Find highway edges in a specific zone\nzone_id = '2_5'\nif zone_id in zone_dict:\n    highway_edges = zone_dict[zone_id]['highway_edges']\n    print(f\"Highway edges in zone {zone_id}: {highway_edges}\")\n\n# Find all zones with highways\nhighway_zones = [zid for zid, info in zone_dict.items() if info['highway_edges']]\n```"
+    },
+    {
+      "name": "highway_segment_graph",
+      "description": "NetworkX DiGraph connecting highway segments. Represents spatial relationships between highway segments for understanding upstream/downstream connections. Use this to identify which segments are connected and understand traffic flow patterns between segments.",
+      "data_format": {
+        "type": "NetworkX DiGraph",
+        "nodes": "highway_segment_id (str, e.g., 'highway_segment_0', 'highway_segment_1') - only main highway segments (speed >= 90km/h)",
+        "edges": "Highway segment-to-segment connections",
+        "edge_meaning": "If segment A -> segment B, it means segment A's last road connects to segment B's first road",
+        "structure": "Graph built from connected components of main highway roads (excludes trunk/ramp roads)"
+      },
+      "usage_example": "```python\n# Find connected highway segments\nsegment_id = 'highway_segment_0'\nif segment_id in highway_segment_graph:\n    downstream_segments = list(highway_segment_graph.successors(segment_id))\n    upstream_segments = list(highway_segment_graph.predecessors(segment_id))\n    print(f\"Segment {segment_id} connects to downstream: {downstream_segments}\")\n\n# Find all segments\nall_segments = list(highway_segment_graph.nodes())\n```"
+    },
+    {
+      "name": "highway_segment_dict",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping road_id to road information for all highway/expressway roads (including both main and trunk roads). Each road has a 'cate' attribute: 'main' for speed >= 90km/h, 'trunk' for other highway roads. Use directly: `highway_segment_dict`, NOT `highway_segment_dict()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "road_id": {
+            "cate": "Category: 'main' (speed >= 90km/h) or 'trunk' (ramp/trunk roads)",
+            "type": "Road type string (e.g., 'highway', 'motorway', 'expressway', 'trunk')",
+            "max_speed": "Default speed limit in m/s (float)",
+            "length": "Road length in meters (float)",
+            "numLanes": "Number of lanes (int)",
+            "from": "From node ID (str)",
+            "to": "To node ID (str)",
+            "other_attributes": "Additional road attributes from SUMO network"
+          }
+        },
+        "example": {
+          "road_1_0": {
+            "cate": "main",
+            "type": "highway",
+            "max_speed": 33.33,
+            "length": 500.0,
+            "numLanes": 3,
+            "from": "node_1",
+            "to": "node_2"
+          },
+          "road_2_1": {
+            "cate": "trunk",
+            "type": "highway.motorway_link",
+            "max_speed": 20.0,
+            "length": 200.0,
+            "numLanes": 2,
+            "from": "node_3",
+            "to": "node_4"
+          }
+        }
+      },
+      "usage_example": "```python\n# Access highway road information\nroad_id = 'road_1_0'\nif road_id in highway_segment_dict:\n    road_info = highway_segment_dict[road_id]\n    cate = road_info.get('cate', 'unknown')\n    max_speed = road_info.get('max_speed', 0)\n    print(f\"Road {road_id}: category={cate}, max_speed={max_speed}m/s\")\n\n# Filter main roads only\nmain_roads = {rid: info for rid, info in highway_segment_dict.items() if info.get('cate') == 'main'}\n```"
+    },
+    {
+      "name": "current_highway_speed_limit_config",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary containing the current highway speed limit configuration for all highway segments. Format supports scheduled speed limit changes within the checkpoint cycle. When creating a new configuration, only use highway segments that exist in this config. Use directly: `current_highway_speed_limit_config`, NOT `current_highway_speed_limit_config()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "highway_segment_id": "List of scheduled speed limit changes: [{'time': <TIME_IN_OPTIMIZATION_TIME_WINDOW>, 'speed_limit': <SPEED_IN_MPH>}, ...]"
+        },
+        "example": {
+          "highway_segment_0": [
+            {"time": 0, "speed_limit": 55},
+            {"time": 600, "speed_limit": 50}
+          ],
+          "highway_segment_1": [
+            {"time": 0, "speed_limit": 60}
+          ],
+          "highway_segment_2": [
+            {"time": 0, "speed_limit": 65},
+            {"time": 900, "speed_limit": 60},
+            {"time": 1500, "speed_limit": 65}
+          ]
+        },
+        "constraints": {
+          "time": "Time in seconds from start of optimization time window (int/float, must be >= 0). For optimization time window of 1800s, valid range is 0-1800",
+          "speed_limit": "Speed limit in mph (int, must be one of: 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65)",
+          "range": "5-65 mph (inclusive)",
+          "unit": "Miles per hour (conversion to m/s is handled automatically)",
+          "scheduling": "Multiple speed limit changes can be scheduled within a single optimization time window. Changes are applied at the specified times."
+        }
+      },
+      "usage_example": "```python\n# Each segment's value is a LIST of scheduled changes\n# Extract current speed limit\ncurrent_mph = get_current_speed_limit('highway_segment_0')  # Returns int (mph)\n\n# Iterate over config\nfor seg_id, schedule in current_highway_speed_limit_config.items():\n    current_mph = get_current_speed_limit(seg_id)\n    if current_mph < 65:\n        # Adjust speed limit\n        pass\n\n# Create new config (use existing segment IDs)\nnew_config = {{\n    'highway_segment_0': [\n        {{'time': 0, 'speed_limit': 50}},\n        {{'time': 900, 'speed_limit': 55}}\n    ],\n    'highway_segment_1': [{{'time': 0, 'speed_limit': 60}}]\n}}\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "read_highway_traffic_states",
+      "description": "Query historical highway traffic conditions. Returns a DICT with keys: 'snapshots', 'snapshots_by_time', 'metadata', 'total_snapshots'. Check for 'error' key first. CRITICAL: Each snapshot uses 'highway_states' key (NOT 'segments'). Use snapshot['highway_states'] to access segment data. Automatically uses the most recent traffic states file.",
+      "input_format": {
+        "start_time": "Optional start time filter in seconds (float, default: None)",
+        "end_time": "Optional end time filter in seconds (float, default: None)",
+        "exact_time": "Optional exact time filter in seconds (float, default: None)",
+        "max_snapshots": "Optional maximum number of snapshots to read (int, default: None for all)"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "metadata": {
+            "type": "metadata",
+            "simulation_id": "str",
+            "start_time": "str",
+            "format_version": "str"
+          },
+          "snapshots": [
+            {
+              "simulation_time": "float (seconds)",
+              "timestamp": "str (ISO format)",
+              "highway_count": "int",
+              "highway_states": {
+                "highway_segment_id": {
+                  "highway_id": "str",
+                  "simulation_time": "float (seconds)",
+                  "road_ids": "list[str] - List of road IDs in this highway segment",
+                  "num_roads": "int - Number of roads in this segment",
+                  "current_speed_limits": {
+                    "road_id": "float (m/s) - Current speed limit for each road"
+                  },
+                  "default_speed_limits": {
+                    "road_id": "float (m/s) - Default speed limit for each road"
+                  },
+                  "segment_speed": "float - Average speed across all roads in segment (m/s)",
+                  "segment_density": "float - Average density across all roads in segment (vehicles per meter)",
+                  "segment_occupancy": "float - Average occupancy across all roads in segment (vehicles per meter)",
+                  "segment_speed_limit": "float - Average speed limit across all roads in segment (m/s)",
+                  "segment_default_speed_limit": "float - Average default speed limit across all roads in segment (m/s)",
+                  "segment_congestion_ratio": "float - Ratio of congested roads in segment (0.0-1.0)",
+                  "segment_speed_ratio": "float - segment_speed / segment_speed_limit",
+                  "segment_speed_pressure": "float - segment_speed_limit - segment_speed (m/s)",
+                  "road_speed": "list[float] - Average speed per road (m/s, for detailed analysis)",
+                  "road_density": "list[float] - Density per road (vehicles per meter, for detailed analysis)",
+                  "road_occupancy": "list[float] - Occupancy per road (vehicles per meter, for detailed analysis)"
+                }
+              }
+            }
+          ],
+          "snapshots_by_time": "dict[float, dict] (indexed by simulation_time)",
+          "total_snapshots": "int",
+          "filtered_snapshots": "int"
+        }
+      },
+      "usage_example": "```python\n# Check for errors first\ndata = read_highway_traffic_states()\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    # CRITICAL: Use 'highway_states' key (NOT 'segments')\n    snapshots = data.get('snapshots', [])\n    for snapshot in snapshots:\n        highway_states = snapshot.get('highway_states', {})\n        for seg_id, condition in highway_states.items():\n            segment_speed = condition.get('segment_speed', 0)\n            segment_occupancy = condition.get('segment_occupancy', 0)\n            segment_congestion_ratio = condition.get('segment_congestion_ratio', 0)\n```"
+    },
+    {
+      "name": "predict_arima",
+      "description": "Generic ARIMA (AutoRegressive Integrated Moving Average) time series prediction function. Use this to predict future traffic flow patterns by first extracting time series data from read_highway_traffic_states(), then passing the values to this function. This enables proactive scheduling of speed limit changes within the checkpoint cycle based on predicted congestion patterns.",
+      "input_format": {
+        "time_series": "List of time series values (list[float], required) - Extract from traffic states data",
+        "history_window": "Number of time steps to use as history (int, required) - Use recent data points",
+        "prediction_window": "Number of time steps to predict (int, required) - Convert forecast horizon to time steps",
+        "forecast_interval": "Interval between prediction points in time steps (int, default: 1) - If prediction_window=10 and forecast_interval=2, predicts 5 points"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "error": "str or None - Error message if prediction failed, None if successful",
+          "predicted_values": "list[float] - Predicted values for future time steps",
+          "confidence_lower": "list[float] - Lower bound of 95% confidence interval",
+          "confidence_upper": "list[float] - Upper bound of 95% confidence interval",
+          "model_info": {
+            "model_type": "str - 'ARIMA'",
+            "order": "tuple - ARIMA(p,d,q) order used (automatically selected)",
+            "aic": "float - Akaike Information Criterion (model quality metric)",
+            "data_points": "int - Number of historical data points used",
+            "mean": "float - Mean of historical data",
+            "std": "float - Standard deviation of historical data"
+          }
+        }
+      },
+      "usage_example": "```python\n# Step 1: Extract time series from traffic states\ndata = read_highway_traffic_states()\nvalues = []\nfor snapshot in data['snapshots']:\n    highway_states = snapshot.get('highway_states', {{}})\n    if 'highway_segment_0' in highway_states:\n        values.append(highway_states['highway_segment_0'].get('segment_occupancy', 0.0))\n\n# Step 2: Predict future values\nresult = predict_arima(\n    time_series=values[-100:],  # Use last 100 data points\n    history_window=100,\n    prediction_window=30,       # Predict 30 time steps ahead\n    forecast_interval=5         # Predict every 5 steps\n)\n\n# Step 3: Use predictions\nif not result.get('error'):\n    predicted = result['predicted_values']\n    # Analyze trend: if predicted[-1] > predicted[0], congestion is worsening\n    # Schedule speed limit changes accordingly\n```"
+    }
+  ]
+}
+

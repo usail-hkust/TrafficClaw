@@ -1,0 +1,23 @@
+#
+# Python dependencies for ChatCity/DeepCity
+#
+
+# Core numerical / data processing
+numpy
+pandas
+networkx
+tqdm
+pyyaml
+
+# Visualization and symbolic utilities (used by tooling)
+matplotlib
+sympy
+statsmodels
+
+# SUMO Python bindings (install alongside the SUMO simulator)
+traci==1.20.0
+sumolib==1.20.0
+
+# LLM access and optional local inference
+openai
+vllm

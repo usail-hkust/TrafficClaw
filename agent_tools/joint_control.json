@@ -1,0 +1,75 @@
+{
+  "functions": [
+    {
+      "name": "analyze_zone_traffic",
+      "description": "Analyze traffic at the zone/TAZ level. Aggregates lane-level metrics by zone to provide a higher-level view of traffic conditions.",
+      "input_format": {
+        "zone_dict": "dict - Zone dictionary mapping zone_id to zone info (use pre-defined zone_dict variable)",
+        "lane_states": "dict - Lane states from read_lane_traffic_states()['snapshots'][-1]['lane_states']",
+        "zone_ids": "list (optional) - Specific zone IDs to analyze, or None for all zones"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "zone_id": {
+            "total_vehicles": "int - Total vehicles in zone",
+            "avg_queue_length": "float - Average queue length across lanes",
+            "avg_speed": "float (m/s) - Average speed in zone",
+            "avg_waiting_time": "float (seconds) - Average waiting time",
+            "congestion_level": "str - One of: 'free_flow', 'moderate', 'congested', 'severe'",
+            "intersection_count": "int - Number of intersections in zone",
+            "lane_count": "int - Number of lanes in zone"
+          }
+        }
+      },
+      "usage_example": "```python\nfrom control_modules.shared.shared_tools import analyze_zone_traffic\n\n# Get latest traffic data\ndata = read_lane_traffic_states()\nif data['snapshots']:\n    lane_states = data['snapshots'][-1]['lane_states']\n    \n    # Analyze all zones\n    zone_metrics = analyze_zone_traffic(zone_dict, lane_states)\n    \n    # Find congested zones\n    congested_zones = [\n        z for z, m in zone_metrics.items()\n        if m['congestion_level'] in ('congested', 'severe')\n    ]\n    print(f\"Congested zones: {congested_zones}\")\n```"
+    },
+    {
+      "name": "identify_congestion_hotspots",
+      "description": "Identify congestion hotspots in the network based on queue length and speed thresholds. Returns a ranked list of problem areas.",
+      "input_format": {
+        "lane_states": "dict - Lane states from read_lane_traffic_states()['snapshots'][-1]['lane_states']",
+        "queue_threshold": "int (optional, default=10) - Queue length threshold for congestion",
+        "speed_threshold": "float (optional, default=3.0) - Speed threshold (m/s) below which is congested",
+        "top_n": "int (optional, default=10) - Number of top hotspots to return"
+      },
+      "output_format": {
+        "type": "list",
+        "structure": [
+          {
+            "lane_id": "str - Lane identifier",
+            "intersection": "str - Connected intersection ID",
+            "queue_length": "int - Current queue length",
+            "average_speed": "float (m/s) - Current average speed",
+            "waiting_time": "float (seconds) - Average waiting time",
+            "severity_score": "float - Higher = more severe congestion",
+            "direction": "str - Lane direction (go_straight, turn_left, turn_right)",
+            "loc_dir": "str - Location-direction code (e.g., 'NT', 'EL')"
+          }
+        ]
+      },
+      "usage_example": "```python\nfrom control_modules.shared.shared_tools import identify_congestion_hotspots\n\n# Get latest traffic data\ndata = read_lane_traffic_states()\nif data['snapshots']:\n    lane_states = data['snapshots'][-1]['lane_states']\n    \n    # Find top 5 congestion hotspots\n    hotspots = identify_congestion_hotspots(\n        lane_states,\n        queue_threshold=8,\n        top_n=5\n    )\n    \n    for i, spot in enumerate(hotspots, 1):\n        print(f\"{i}. {spot['intersection']}: queue={spot['queue_length']}, speed={spot['average_speed']:.1f}\")\n```"
+    },
+    {
+      "name": "calculate_network_metrics",
+      "description": "Calculate network-wide traffic metrics including congestion index, average speed, and throughput potential.",
+      "input_format": {
+        "lane_states": "dict - Lane states from read_lane_traffic_states()['snapshots'][-1]['lane_states']",
+        "module_metrics": "dict (optional) - Per-module metrics for additional context"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "total_vehicles": "int - Total active vehicles in network",
+          "avg_speed": "float (m/s) - Network average speed",
+          "avg_queue_length": "float - Network average queue length",
+          "avg_waiting_time": "float (seconds) - Network average waiting time",
+          "network_throughput_potential": "float - Aggregate throughput potential",
+          "congestion_index": "float (0-1) - Overall congestion level (higher = more congested)",
+          "lane_count": "int - Number of lanes with data"
+        }
+      },
+      "usage_example": "```python\nfrom control_modules.shared.shared_tools import calculate_network_metrics\n\n# Get latest traffic data\ndata = read_lane_traffic_states()\nif data['snapshots']:\n    lane_states = data['snapshots'][-1]['lane_states']\n    \n    # Calculate network-wide metrics\n    network = calculate_network_metrics(lane_states, module_metrics)\n    \n    print(f\"Network congestion index: {network['congestion_index']:.2f}\")\n    print(f\"Average speed: {network['avg_speed']:.2f} m/s\")\n    print(f\"Active vehicles: {network['total_vehicles']}\")\n```"
+    }
+  ]
+}

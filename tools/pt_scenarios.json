@@ -1,0 +1,27 @@
+{
+  "toy": {
+    "net": "examples/toy_pt/toy.net.xml",
+    "routes": ["examples/toy_pt/toy_pt_routes.rou.xml"],
+    "additional": ["examples/toy_pt/toy_pt_stops.add.xml"]
+  },
+  "nyc": {
+    "net": "sumo_network/newyork.net.xml",
+    "routes": [
+      "sumo_network/subway_routes_complete.rou.xml",
+      "sumo_network/bus_routes_all_complete.rou.xml"
+    ],
+    "additional": [
+      "sumo_network/subway_stops_mapped.add.xml",
+      "sumo_network/bus_stops_mapped.add.xml"
+    ]
+  },
+  "nyc_bus_all": {
+    "net": "sumo_network/newyork.net.xml",
+    "routes": [
+      "sumo_network/bus_routes_all_complete.rou.xml"
+    ],
+    "additional": [
+      "sumo_network/bus_stops_mapped.add.xml"
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "data": [
+    {
+      "name": "zone_dict",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping zone_id to zone infrastructure information. Use zone_dict to find which ramps and ramp-controlled lanes belong to specific zones via the 'ramps' and 'ramp_lanes' fields. See zone_info.json for full documentation. Use directly: `zone_dict`, NOT `zone_dict()`.",
+      "data_format": {
+        "type": "dict",
+        "relevant_fields": {
+          "ramps": "List of ramp TLS (traffic light system) IDs in this zone",
+          "ramp_lanes": "List of ramp-controlled lane IDs in this zone"
+        }
+      },
+      "usage_example": "```python\n# Find ramps in a specific zone\nzone_id = '2_5'\nif zone_id in zone_dict:\n    ramps = zone_dict[zone_id]['ramps']\n    ramp_lanes = zone_dict[zone_id]['ramp_lanes']\n    print(f\"Ramps in zone {zone_id}: {ramps}\")\n\n# Find all zones with ramps\nramp_zones = [zid for zid, info in zone_dict.items() if info['ramps']]\n\n# Filter ramp config by zone\nzone_ramps = set(zone_dict[zone_id]['ramps'])\nzone_ramp_config = {k: v for k, v in current_ramp_metering_config.items() if k in zone_ramps}\n```"
+    },
+    {
+      "name": "ramp_lane_graph",
+      "description": "NetworkX DiGraph connecting ramps to their controlled lanes and 2-hop upstream/downstream lanes. Represents detailed lane-level connections for ramp metering control. Use this graph to analyze upstream and downstream lane occupancy for intelligent ramp control decisions. This is the primary graph for ramp metering control - use it to identify controlled lanes, downstream lanes (for congestion monitoring), and upstream lanes (for queue management).",
+      "data_format": {
+        "type": "NetworkX DiGraph",
+        "nodes": {
+          "ramps": "ramp_id (str, e.g., 'ramp_1', 'ramp_2') - ramp metering TLS IDs (with node_type='ramp')",
+          "lanes": "lane_id (str) - all lanes in the graph (no node_type, same lane can have different relationships to different ramps)"
+        },
+        "edges": {
+          "ramp -> controlled_lane": "The ramp signal controls this lane",
+          "upstream_lane -> controlled_lane": "Upstream lane feeds into controlled lane (within 2 hops)",
+          "controlled_lane -> downstream_lane": "Controlled lane leads to downstream lane (within 2 hops)"
+        },
+        "node_attributes": {
+          "node_type": "Only for ramp nodes: 'ramp'. Lane nodes have no node_type (same lane can have different relationships to different ramps)"
+        },
+        "edge_attributes": {
+          "edge_type": "'controls', 'feeds_into', or 'leads_to'"
+        },
+        "structure": "Graph built from ramp signal phase analysis and lane connectivity"
+      },
+      "usage_example": "```python\n# Find controlled lanes for a ramp\nramp_id = 'ramp_1'\ncontrolled_lanes = [node for node in ramp_lane_graph.successors(ramp_id)\n                    if ramp_lane_graph.get_edge_data(ramp_id, node, {}).get('edge_type') == 'controls']\n\n# Find downstream lanes\nif controlled_lanes:\n    downstream_lanes = [node for node in ramp_lane_graph.successors(controlled_lanes[0])\n                        if ramp_lane_graph.get_edge_data(controlled_lanes[0], node, {}).get('edge_type') == 'leads_to']\n```"
+    },
+    {
+      "name": "current_ramp_metering_config",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary containing the current ramp metering configuration for all ramps. Format specifies OPEN and CLOSE durations for each ramp. When creating a new config, only use ramps that exist in this config. Use directly: `current_ramp_metering_config`, NOT `current_ramp_metering_config()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "ramp_id": {
+            "OPEN": "Duration in seconds that the ramp remains open (int/float, >= 0)",
+            "CLOSE": "Duration in seconds that the ramp remains closed (int/float, >= 0)"
+          }
+        },
+        "example": {
+          "ramp_1": {
+            "OPEN": 600,
+            "CLOSE": 300
+          },
+          "ramp_2": {
+            "OPEN": 600,
+            "CLOSE": 0
+          }
+        },
+        "constraints": {
+          "OPEN": "Duration in seconds (int/float, must be >= 0)",
+          "CLOSE": "Duration in seconds (int/float, must be >= 0). If CLOSE=0, ramp is always open",
+          "cycle_time": "OPEN + CLOSE (total cycle time)",
+          "default": "All ramps always open (OPEN: 600, CLOSE: 0)"
+        }
+      },
+      "usage_example": "```python\n# View current configuration\nfor ramp_id, config in current_ramp_metering_config.items():\n    print(f\"{ramp_id}: OPEN={config['OPEN']}s, CLOSE={config['CLOSE']}s\")\n\n# Create new config\nnew_config = {{\n    'ramp_1': {{'OPEN': 300, 'CLOSE': 300}},\n    'ramp_2': {{'OPEN': 180, 'CLOSE': 420}}\n}}\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "read_ramp_lane_traffic_states",
+      "description": "Query historical ramp lane traffic conditions for lanes in ramp_lane_graph. Returns a DICT with keys: 'snapshots', 'snapshots_by_time', 'metadata', 'total_snapshots'. Check for 'error' key first. Use occupancy thresholds: < 0.8 (low congestion, keep open), >= 0.8 (high congestion, extend close). Automatically uses the most recent traffic states file.",
+      "input_format": {
+        "start_time": "Optional start time filter in seconds (float, default: None)",
+        "end_time": "Optional end time filter in seconds (float, default: None)",
+        "exact_time": "Optional exact time filter in seconds (float, default: None)",
+        "max_snapshots": "Optional maximum number of snapshots to read (int, default: None for all)"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "metadata": {
+            "type": "metadata",
+            "simulation_id": "str",
+            "start_time": "str",
+            "format_version": "str"
+          },
+          "snapshots": [
+            {
+              "simulation_time": "float (seconds)",
+              "timestamp": "str (ISO format)",
+              "ramp_lane_count": "int",
+              "ramp_lane_states": {
+                "lane_id": {
+                  "lane_id": "str",
+                  "simulation_time": "float (seconds)",
+                  "vehicle_count": "int - Number of vehicles on this lane",
+                  "queue_length": "int - Number of queued vehicles (speed < 0.1 m/s)",
+                  "queue_density": "float - Queue density (queued vehicles per meter)",
+                  "moving_vehicles": "int - Number of moving vehicles",
+                  "average_speed": "float - Average speed on lane (m/s)",
+                  "average_waiting_time": "float - Average waiting time (seconds)",
+                  "cell_occupancy": "list[int] - Occupancy in 4 cells (near intersection to far)",
+                  "lane_density": "float - Density on lane (vehicles per meter)",
+                  "occupancy": "float - Occupancy percentage. Use this along with ramp_lane_graph to identify downstream lane occupancy for congestion monitoring. Threshold: < 0.8 indicates low congestion (keep ramp open), >= 0.8 indicates high congestion (extend close time).",
+                  "lane_length": "float - Lane length (meters)",
+                  "halting_number": "int - Number of halting vehicles",
+                  "max_speed": "float - Maximum speed on lane (m/s)",
+                  "arrival_rate": "float - Vehicle arrival rate (vehicles per second)",
+                  "road_id": "str - Road ID",
+                  "direction": "str - Direction",
+                  "location": "list - Location information",
+                  "start_intersection": "str - Start intersection ID",
+                  "end_intersection": "str - End intersection ID"
+                }
+              }
+            }
+          ],
+          "snapshots_by_time": "dict[float, dict] (indexed by simulation_time)",
+          "total_snapshots": "int",
+          "filtered_snapshots": "int"
+        }
+      },
+      "usage_example": "```python\n# Check for errors first\ndata = read_ramp_lane_traffic_states(exact_time=300.0)\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    snapshots = data.get('snapshots', [])\n    if len(snapshots) > 0:\n        ramp_lane_states = snapshots[0].get('ramp_lane_states', {})\n        \n        # Find downstream lanes via ramp_lane_graph\n        ramp_id = 'ramp_1'\n        controlled_lanes = [n for n in ramp_lane_graph.successors(ramp_id)\n                            if ramp_lane_graph.get_edge_data(ramp_id, n, {}).get('edge_type') == 'controls']\n        downstream_lanes = []\n        for cl in controlled_lanes:\n            downstream = [n for n in ramp_lane_graph.successors(cl)\n                          if ramp_lane_graph.get_edge_data(cl, n, {}).get('edge_type') == 'leads_to']\n            downstream_lanes.extend(downstream)\n\n        # Check occupancy (threshold: < 0.8 low, >= 0.8 high)\n        if downstream_lanes:\n            avg_occupancy = sum(ramp_lane_states.get(lid, {}).get('occupancy', 0) \n                               for lid in downstream_lanes if lid in ramp_lane_states) / len(downstream_lanes)\n```"
+    },
+    {
+      "name": "predict_arima",
+      "description": "Generic ARIMA (AutoRegressive Integrated Moving Average) time series prediction function. Use this to predict future downstream lane occupancy patterns by first extracting time series data from read_ramp_lane_traffic_states() for downstream lanes identified via ramp_lane_graph, then passing the values to this function. This enables proactive scheduling of ramp control adjustments: if downstream occupancy is currently low (< 0.8) but prediction shows future congestion, proactively add CLOSE time even when current occupancy is low to prevent future congestion.",
+      "input_format": {
+        "time_series": "List of time series values (list[float], required) - Extract from traffic states data",
+        "history_window": "Number of time steps to use as history (int, required) - Use recent data points",
+        "prediction_window": "Number of time steps to predict (int, required) - Convert forecast horizon to time steps",
+        "forecast_interval": "Interval between prediction points in time steps (int, default: 1) - If prediction_window=10 and forecast_interval=2, predicts 5 points"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "error": "str or None - Error message if prediction failed, None if successful",
+          "predicted_values": "list[float] - Predicted values for future time steps",
+          "confidence_lower": "list[float] - Lower bound of 95% confidence interval",
+          "confidence_upper": "list[float] - Upper bound of 95% confidence interval",
+          "model_info": {
+            "model_type": "str - 'ARIMA'",
+            "order": "tuple - ARIMA(p,d,q) order used (automatically selected)",
+            "aic": "float - Akaike Information Criterion (model quality metric)",
+            "data_points": "int - Number of historical data points used",
+            "mean": "float - Mean of historical data",
+            "std": "float - Standard deviation of historical data"
+          }
+        }
+      },
+      "usage_example": "```python\n# Extract occupancy time series for downstream lanes\ndata = read_ramp_lane_traffic_states()\nramp_id = 'ramp_1'\nvalues = []\nfor snapshot in data['snapshots']:\n    # Use ramp_lane_graph to find downstream lanes\n    controlled_lanes = [node for node in ramp_lane_graph.successors(ramp_id)\n                        if ramp_lane_graph.get_edge_data(ramp_id, node, {}).get('edge_type') == 'controls']\n    downstream_lane_ids = []\n    for controlled_lane in controlled_lanes:\n        downstream = [node for node in ramp_lane_graph.successors(controlled_lane)\n                      if ramp_lane_graph.get_edge_data(controlled_lane, node, {}).get('edge_type') == 'leads_to']\n        downstream_lane_ids.extend(downstream)\n    # Get occupancy values\n    occupancies = [snapshot['ramp_lane_states'][lid]['occupancy'] \n                   for lid in downstream_lane_ids if lid in snapshot['ramp_lane_states']]\n    if occupancies:\n        values.append(sum(occupancies) / len(occupancies))\n\n# Predict future occupancy\nresult = predict_arima(time_series=values[-100:], history_window=100, prediction_window=30)\nif not result.get('error'):\n    predicted = result['predicted_values']\n    # Use predictions to adjust OPEN/CLOSE durations\n```"
+    }
+  ]
+}

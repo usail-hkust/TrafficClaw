@@ -1,0 +1,307 @@
+# DeepCity Interaction Configuration
+# Used by verl's agent_loop to initialize the DeepCity environment interaction
+#
+# Architecture Overview (refer to verl_architecture.md):
+# - num_masters = 4 Train Masters running in parallel (different scenarios/seeds)
+# - num_val_masters = 6 Val Masters running in parallel (0~3 shared with Train, 4~5 Val only)
+# - Each Master triggers rollout.n = 8 workers for sampling when reaching a checkpoint
+# - 8 workers each perform 10 interaction rounds (with SUMO env), results compared via GRPO
+# - Train total concurrency = num_masters × rollout.n = 4 × 8 = 32
+# - Val total concurrency = num_val_masters × rollout.n = 6 × 8 = 48
+#
+#   Multi-Environment Rotation Mechanism:
+# - environments: defines a list of multiple environment configurations
+# - On restart, rotates to the next environment config (instead of same env with different seed)
+# - All workers in the same batch use the same environment config (only seeds differ)
+# - Example: [env0, env1, env2] → restart → [env1, env2, env0] → restart → [env2, env0, env1]
+
+interaction:
+  - name: "deepcity"
+    class_name: "verl.interactions.deepcity_interaction.DeepCityInteraction"
+    config:
+      max_turns: 10
+      num_masters: 4  # 4 Train Masters in parallel (DeepCityMaster_0, DeepCityMaster_1, DeepCityMaster_2, DeepCityMaster_3)
+      num_val_masters: 6  # 6 Val Masters (DeepCityMaster_0~5, where 0~3 shared with Train, 4~5 Val only)
+      master_name_prefix: "DeepCityMaster"
+      max_concurrent_simulations: null  #   Limit concurrent SUMO simulations (avoid server resource exhaustion). Set to null for no limit
+      
+      #   HTTP Mode Configuration (Hybrid Architecture: Ray Master + HTTP SUMO Server)
+      # - use_http: false → Local mode (Master runs SUMO directly)
+      # - use_http: true → HTTP mode (Master calls remote SUMO server via HTTP)
+      # Hybrid Architecture Benefits:
+      #   1. Ray Master retains all coordination logic (checkpoint management, env switching, seed management)
+      #   2. SUMO simulation offloaded to dedicated server (Server A), local machine (Server B) focuses on training
+      #   3. Worker sampling simulations remain parallel (8 Workers send HTTP requests to Server A in parallel)
+      use_http: false  # Set to true to enable HTTP mode
+      sumo_server_url: "YOUR_SUMO_SERVER_URL_HERE"  # SUMO server URL (required in HTTP mode, e.g., http://10.120.16.27:8012)
+      http_timeout: 300.0  # HTTP request timeout (seconds)
+      
+      #   Reward Weights Configuration (currently not using weights, all set to 1.0 as backup)
+      # Actual formula: total_reward = (metric_improvement + judge_score) × improvement_count + cumulative_module_count_reward
+      reward_weights:
+        metric_improvement: 1.0  # Metric improvement reward weight
+        module_count: 1.0        # Module count reward weight
+        judge: 1.0               # Judge LLM score weight
+      
+      #   Judge LLM Configuration (for scoring overall conversation quality)
+      judge_llm:
+        enabled: true  # Whether to enable Judge LLM scoring
+        use_proxy: true  # Whether to use reverse proxy (true=use reverse tunnel, false=direct internet)
+        # Reverse proxy mode (use_proxy: true): Access API via SSH tunnel (run on external server: ssh -N -R 8080:api.siliconflow.cn:443 -p 31666 apulis-dev@10.120.48.20)
+        api_base_proxy: "https://localhost:8080/v1"
+        # Direct internet mode (use_proxy: false): Direct access to SiliconFlow API
+        api_base_direct: "https://api.siliconflow.cn/v1"
+        api_key: "YOUR_SILICONFLOW_API_KEY_HERE"  # Please fill in your SiliconFlow API Key here (https://cloud.siliconflow.cn)
+        model: "deepseek-ai/DeepSeek-V3.2"  # DeepSeek V3.2 model
+        temperature: 0.2  # Use deterministic output for scoring
+        max_tokens: 10000  # Scoring output doesn't need to be too long
+      
+
+      #   Environment Selection Mode
+      # - "fixed": Use manually defined environments list below (precise control of each environment config)
+      # - "random": Enumerate all map × module subset combinations from random_environment_pool
+      #   Example: 2 maps × 4 modules → 2 × 15 = 30 environments, Master rotates by least-used priority
+      environment_mode: "fixed"  # "fixed" or "random"
+      
+      #   Random Environment Pool Configuration (only effective when environment_mode: "random")
+      # Enumerates all map × non-empty module subset combinations (2 maps × 15 subsets = 30 environments)
+      # If control_modules contains highway_speed_limit, use sumo_config_highway network
+      random_environment_pool:
+        sumo_config_paths:
+          - "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          - "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        sumo_config_highway_paths:
+          - "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          - "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        control_modules:
+          - "bus_scheduling"
+          - "signal_timing"
+          - "taxi_scheduling"
+          - "highway_speed_limit"
+        min_modules: 1  # Minimum number of modules per environment
+        max_modules: 3  # Maximum number of modules per environment
+      
+      #   Fixed Environment List (only effective when environment_mode: "fixed")
+      # Complete module training coverage: single-module training (8) + pairwise combinations (12) = 20 environments
+      # Environments with highway_speed_limit use highway network, others use regular network
+      environments:
+
+        # ====== 1. Single Module Training (4 modules × 2 maps = 8 environments) ======
+
+        # signal_timing alone
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+          episodes: 1
+
+        # bus_scheduling alone
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+          episodes: 1
+
+        # taxi_scheduling alone
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "taxi_scheduling"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "taxi_scheduling"
+          episodes: 1
+
+        # highway_speed_limit alone (highway network)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "highway_speed_limit"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "highway_speed_limit"
+          episodes: 1
+
+        # ====== 2. Pairwise Module Combinations (6 combinations × 2 maps = 12 environments) ======
+
+        # signal_timing + bus_scheduling
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "bus_scheduling"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "bus_scheduling"
+          episodes: 1
+
+        # signal_timing + taxi_scheduling
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "taxi_scheduling"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "taxi_scheduling"
+          episodes: 1
+
+        # signal_timing + highway_speed_limit (highway network)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "highway_speed_limit"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "highway_speed_limit"
+          episodes: 1
+
+        # bus_scheduling + taxi_scheduling
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "taxi_scheduling"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "taxi_scheduling"
+          episodes: 1
+
+        # bus_scheduling + highway_speed_limit (highway network)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "highway_speed_limit"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "highway_speed_limit"
+          episodes: 1
+
+        # taxi_scheduling + highway_speed_limit (highway network)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "taxi_scheduling"
+            - "highway_speed_limit"
+          episodes: 1
+
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "taxi_scheduling"
+            - "highway_speed_limit"
+          episodes: 1
+
+        # ====== Commented 3-4 Module Combinations ======
+
+        # ====== 5. All modules: signal + bus + taxi + highway (highway network) [Commented: 4 modules] ======
+
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        #   control_modules:
+        #     - "signal_timing"
+        #     - "bus_scheduling"
+        #     - "taxi_scheduling"
+        #     - "highway_speed_limit"
+        #   episodes: 1
+
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        #   control_modules:
+        #     - "signal_timing"
+        #     - "bus_scheduling"
+        #     - "taxi_scheduling"
+        #     - "highway_speed_limit"
+        #   episodes: 1
+
+
+
+
+
+
+
+      
+      #   Val Independent Environment Configuration (optional)
+      # If val_environments is configured, val uses independent environment pool (completely isolated from train)
+      # If not configured, val reuses train's environments
+      # Recommended: val environment count ≥ num_val_masters to fully utilize all val Masters
+      #
+      # Val Strategy: Fixed 6 environments, each validation runs from 0:00 to 3:00 (6 time steps)
+      # 3 Upper_Manhattan + 3 Inner_Queens, each map with 3 module combinations
+      # val_simulation_duration controls val simulation total duration (10800s = 3h = 6 × 30min checkpoint)
+      val_simulation_duration: 10800  # Val simulation duration (seconds), resets to 0:00 after completion
+      val_environments:
+
+        # ====== Manhattan ======
+
+        # Val 0: signal + bus + highway (highway Manhattan)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "bus_scheduling"
+            - "highway_speed_limit"
+
+        # Val 1: signal + highway (highway Manhattan)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "highway_speed_limit"
+
+        # Val 2: bus + taxi (Manhattan)
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "taxi_scheduling"
+
+        # ====== Queens ======
+
+        # Val 3: signal + bus + highway (highway Queens)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "bus_scheduling"
+            - "highway_speed_limit"
+
+        # Val 4: signal + highway (highway Queens)
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+          control_modules:
+            - "signal_timing"
+            - "highway_speed_limit"
+
+        # Val 5: bus + taxi (Queens)
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+          control_modules:
+            - "bus_scheduling"
+            - "taxi_scheduling"
+
+      #   General Configuration
+      checkpoint_interval: 1800  # Checkpoint interval (seconds), triggers Agent inference when reached (30 minutes)
+      
+      #   General Seed Generation Mechanism
+      seed: 66  # Base random seed (each Master automatically adds master_id)
+      seed_increment: 1000  # Seed increment on each restart (default 1000)
+      
+      use_gui: false  # Whether to use SUMO GUI
+      
+      #   Auto-restart Configuration (for long-term training)
+      simulation_duration: 43200 # Simulation duration (seconds), e.g., 86400s = 24 hours, auto-restarts when reached
+      auto_restart: true  # Whether to auto-restart (rotates to next environment config on restart)
+      max_episodes: null  # No episode limit, let Master run continuously until training ends

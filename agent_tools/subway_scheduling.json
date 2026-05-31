@@ -1,0 +1,135 @@
+{
+  "data": [
+    {
+      "name": "current_subway_schedule",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary containing the current subway scheduling configuration for all lines with time-based scheduling support. CRITICAL: (1) Use copy.deepcopy() to copy structure - DO NOT manually reconstruct. (2) DO NOT MODIFY station_id or time_range values. (3) ONLY modify headway and dwell_time values. Use directly: `current_subway_schedule`, NOT `current_subway_schedule()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "route_id": {
+            "timetable": [
+              {
+                "time_range": "[start_time, end_time] in seconds (list of 2 ints). Time periods within an hour for different scheduling strategies",
+                "headway": "time between trains in seconds (int). CONSTRAINTS: min=100 (1.67 min), max=500 (8.33 min), default=153 (2.55 min)",
+                "schedule": [
+                  {
+                    "station_id": "station identifier (str)",
+                    "dwell_time": "time spent at station in seconds (int). CONSTRAINTS: min=25, max=50, default=30"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "constraints": {
+          "time_range": {
+            "description": "Time periods in seconds within simulation. Multiple time ranges allow different headways for peak/off-peak hours. Time ranges must not overlap and should cover the entire simulation period. WARNING: DO NOT MODIFY time_range values when creating new configurations - always copy them exactly from current_subway_schedule."
+          },
+          "headway": {
+            "min": 100,
+            "max": 500,
+            "default": 153,
+            "description": "Minimum 100 seconds (1.67 min) to ensure safe train separation. Maximum 500 seconds (8.33 min) to maintain reasonable service frequency."
+          },
+          "dwell_time": {
+            "min": 25,
+            "max": 50,
+            "default": 30,
+            "description": "Minimum 25 seconds for passenger boarding/alighting. Maximum 50 seconds to avoid excessive delays."
+          }
+        },
+        "example": {
+          "route_line1_eastbound": {
+            "timetable": [
+              {
+                "time_range": [0, 1200],
+                "headway": 200,
+                "schedule": [
+                  {"station_id": "stop_line1_west_east", "dwell_time": 30},
+                  {"station_id": "stop_line1_sports_east", "dwell_time": 30},
+                  {"station_id": "stop_line1_gov_east", "dwell_time": 30}
+                ]
+              },
+              {
+                "time_range": [1200, 2400],
+                "headway": 150,
+                "schedule": [
+                  {"station_id": "stop_line1_west_east", "dwell_time": 25},
+                  {"station_id": "stop_line1_sports_east", "dwell_time": 25},
+                  {"station_id": "stop_line1_gov_east", "dwell_time": 25}
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "usage_example": "```python\n# CRITICAL: Use copy.deepcopy() to copy structure\nimport copy\nnew_config = {}\nfor route_id, config in current_subway_schedule.items():\n    new_config[route_id] = {\"timetable\": []}\n    for period in config['timetable']:\n        new_period = {\n            \"time_range\": period[\"time_range\"],  # DO NOT MODIFY - copy exact time range\n            \"headway\": 180,  # Modify headway as needed\n            \"schedule\": copy.deepcopy(period[\"schedule\"])  # COPY exact station list\n        }\n        # Modify dwell times\n        for station in new_period[\"schedule\"]:\n            station[\"dwell_time\"] = 28  # Modify as needed\n        new_config[route_id][\"timetable\"].append(new_period)\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "read_subway_states",
+      "description": "Query historical subway operation data. Returns a DICT with keys: 'snapshots', 'metadata', 'total_snapshots'. Access snapshots via data['snapshots']. Each station in snapshot.subway.lines[line_id].stations[station_id] has 'waiting_count' (int), 'avg_waiting_time', 'max_waiting_time', 'waiting_time_distribution'. DO NOT use open() or json.load() directly. Automatically uses the most recent traffic states file.",
+      "input_format": {
+        "start_time": "Optional start time filter in seconds (float, default: None)",
+        "end_time": "Optional end time filter in seconds (float, default: None)",
+        "exact_time": "Optional exact time filter in seconds (float, default: None)",
+        "line_id": "Optional filter by specific subway line (str, default: None)",
+        "max_snapshots": "Optional maximum number of snapshots to return (int, default: None for all)"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "metadata": {
+            "simulation_id": "str",
+            "start_time": "str",
+            "file_path": "str - path to traffic states file"
+          },
+          "snapshots": [
+            {
+              "simulation_time": "float (seconds)",
+              "subway": {
+                "lines": {
+                  "line_id": {
+                    "active_trains": "int - number of trains currently running on this line",
+                    "headway": "float - scheduled headway in seconds",
+                    "station_count": "int - number of stations on this line",
+                    "trains": {
+                      "train_id": {
+                        "departure_time": "float - when train departed (seconds)",
+                        "travel_time": "float - time since departure (seconds)",
+                        "current_edge": "str - current road/edge ID",
+                        "speed": "float - current speed (m/s)",
+                        "passenger_count": "int - current number of passengers",
+                        "capacity": "int - train capacity",
+                        "load_ratio": "float - passenger_count/capacity (0.0-1.0)",
+                        "next_station": "str - next stop station ID",
+                        "next_station_dwell_time": "float - planned dwell time at next station (seconds)"
+                      }
+                    },
+                    "stations": {
+                      "station_id": {
+                        "waiting_count": "int - number of passengers waiting at station",
+                        "avg_waiting_time": "float - average waiting time (seconds)",
+                        "max_waiting_time": "float - maximum waiting time (seconds)",
+                        "waiting_time_distribution": {
+                          "0-60s": "int - count of passengers waiting 0-60 seconds",
+                          "60-180s": "int - count of passengers waiting 60-180 seconds",
+                          "180-300s": "int - count of passengers waiting 180-300 seconds",
+                          ">300s": "int - count of passengers waiting over 300 seconds"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "total_snapshots": "int - total number of snapshots returned"
+        }
+      },
+      "usage_example": "```python\n# Get subway states\ndata = read_subway_states()\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    for snapshot in data['snapshots']:\n        sim_time = snapshot['simulation_time']\n        subway_data = snapshot['subway']\n        for line_id, state in subway_data['lines'].items():\n            print(f\"{line_id} at {sim_time}s: {state['active_trains']} trains, headway={state['headway']}s\")\n            for station_id, station in state['stations'].items():\n                if station.get('waiting_count', 0) > 0:\n                    print(f\"  Station {station_id}: {station['waiting_count']} waiting\")\n```"
+    }
+  ]
+}
+

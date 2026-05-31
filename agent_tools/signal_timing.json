@@ -1,0 +1,160 @@
+{
+  "data": [
+    {
+      "name": "zone_dict",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping zone_id to zone infrastructure information. Use zone_dict to find which intersections and lanes belong to specific zones. See zone_info.json for full documentation. Use directly: `zone_dict`, NOT `zone_dict()`.",
+      "data_format": {
+        "type": "dict",
+        "relevant_fields": {
+          "lanes": "List of all lane IDs within the zone",
+          "intersections": "List of traffic light controlled intersection/junction IDs"
+        }
+      },
+      "usage_example": "```python\n# Find intersections in a specific zone\nzone_id = '2_5'\nif zone_id in zone_dict:\n    intersections = zone_dict[zone_id]['intersections']\n    lanes = zone_dict[zone_id]['lanes']\n    print(f\"Intersections in zone {zone_id}: {intersections}\")\n\n# Filter signal config by zone\nzone_intersections = set(zone_dict[zone_id]['intersections'])\nzone_signal_config = {k: v for k, v in current_signal_config.items() if k in zone_intersections}\n```"
+    },
+    {
+      "name": "lane_inter_graph",
+      "description": "NetworkX DiGraph connecting lane groups to intersections. Maps traffic flow from lane groups through intersections.",
+      "data_format": {
+        "type": "NetworkX DiGraph",
+        "nodes": {
+          "lane_groups": "\"/\"-separated lane IDs (e.g., 'road_1_0/road_1_1')",
+          "intersections": "intersection names (e.g., 'intersection_1')"
+        },
+        "edges": {
+          "from_lane_group_to_intersection": "incoming traffic",
+          "from_intersection_to_lane_group": "outgoing traffic"
+        },
+        "edge_attributes": {
+          "type": "\"{location}-{direction}\" (e.g., 'north-go_straight')",
+          "loc_dir": "\"{Location}{Direction}\" (e.g., 'NT' = North + Turn)",
+          "length": "Road length (for lane_group nodes)"
+        },
+        "structure": "Maps traffic flow from lane groups through intersections"
+      },
+      "usage_example": "```python\n# Find intersections connected to a lane group\nlane_group = 'road_1_0/road_1_1'\nintersections = list(lane_inter_graph.successors(lane_group))\n\n# Get edge attributes\nfor u, v, data in lane_inter_graph.edges(data=True):\n    loc_dir = data.get('loc_dir')\n```"
+    },
+    {
+      "name": "lane_dict",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping lane_id to lane metadata including location, direction, and lane group information. Use directly: `lane_dict`, NOT `lane_dict()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "lane_id": {
+            "road_id": "The id (str) of the road the lane belongs to",
+            "location": "List of location strings (['north', 'south', 'east', 'west'])",
+            "direction": "One of: 'go_straight' | 'turn_left' | 'turn_right'",
+            "lane_group": "\"/\"-separated lane IDs in same direction group (e.g., 'road_1_0/road_1_1')"
+          }
+        },
+        "example": {
+          "road_1_0_0": {
+            "road_id": "road_1_0",
+            "location": ["north"],
+            "direction": "go_straight",
+            "lane_group": "road_1_0_0/road_1_0_1"
+          }
+        }
+      },
+      "usage_example": "```python\n# Access lane metadata\nlane_id = 'road_1_0'\nif lane_id in lane_dict:\n    location = lane_dict[lane_id]['location']\n    direction = lane_dict[lane_id]['direction']\n    lane_group = lane_dict[lane_id]['lane_group']\n\n# Iterate over lanes\nfor lane_id, lane_data in lane_dict.items():\n    road_id = lane_data.get('road_id')\n    direction = lane_data.get('direction')\n```"
+    },
+    {
+      "name": "current_signal_config",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary containing the current signal timing configuration for all intersections. Format: {\"intersection_id\": {\"phase_name\": duration, ...}, ...}. Cycle is automatically calculated from sum of phase durations. When creating a new config, only use phases listed in this config. Use directly: `current_signal_config`, NOT `current_signal_config()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "intersection_id": {
+              "phase_name": "duration in seconds (int)"
+          }
+        },
+        "example": {
+          "intersection_1": {
+              "ET": 10,
+              "NTST": 20,
+              "ELWL": 10,
+              "NLSL": 10
+          },
+          "intersection_2": {
+              "ETWT": 20,
+              "NT": 10,
+              "ELWL": 10,
+              "NL": 10
+          }
+        }
+      },
+      "usage_example": "```python\n# View current signal configuration\nfor inter_id, phases in current_signal_config.items():\n    cycle = sum(phases.values())  # Cycle is auto-calculated\n    print(f\"{inter_id}: cycle={cycle}s\")\n\n# Check available phases for an intersection\ninter_id = 'intersection_1'\nif inter_id in current_signal_config:\n    available_phases = list(current_signal_config[inter_id].keys())\n    # When creating new config, only use these phases\n\n# Copy current config (start from existing)\nsignal_config = current_signal_config.copy()\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "read_lane_traffic_states",
+      "description": "Query historical lane traffic conditions. Returns a DICT with keys: 'snapshots', 'snapshots_by_time', 'metadata', 'total_snapshots'. Check for 'error' key first. Use data.get('snapshots', []) for safe access. Automatically uses the most recent traffic states file.",
+      "input_format": {
+        "start_time": "Optional start time filter in seconds (float, default: None)",
+        "end_time": "Optional end time filter in seconds (float, default: None)",
+        "exact_time": "Optional exact time filter in seconds (float, default: None)",
+        "max_snapshots": "Optional maximum number of snapshots to read (int, default: None for all)"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "metadata": {
+            "type": "metadata",
+            "simulation_id": "str",
+            "start_time": "str",
+            "format_version": "str"
+          },
+          "snapshots": [
+            {
+              "simulation_time": "float (seconds)",
+              "timestamp": "str (ISO format)",
+              "lane_count": "int",
+              "lane_states": {
+                "lane_id": {
+                  "lane_id": "str",
+                  "road_id": "str",
+                  "direction": "str",
+                  "location": "list[str]",
+                  "start_intersection": "str | None",
+                  "end_intersection": "str | None",
+                  "loc_dir": "str",
+                  "lane_group": "str",
+                  "vehicle_count": "int",
+                  "queue_length": "int",
+                  "queue_density": "float (vehicles per meter)",
+                  "moving_vehicles": "int",
+                  "average_speed": "float (m/s)",
+                  "average_waiting_time": "float (seconds)",
+                  "cell_occupancy": "list[int] (4 cells: [near intersection ... far])",
+                  "vehicle_details": [
+                    {
+                      "id": "str",
+                      "speed": "float (m/s)",
+                      "position": "float (meters from start)",
+                      "waiting_time": "float (seconds)"
+                    }
+                  ],
+                  "lane_density": "float (vehicles per meter)",
+                  "throughput_potential": "float (vehicles per second)",
+                  "lane_length": "float (meters)",
+                  "occupancy": "float (percentage)",
+                  "halting_number": "int",
+                  "max_speed": "float (m/s)",
+                  "arrival_rate": "float (vehicles per second) - rate of vehicles entering the lane",
+                  "entering_vehicles": "int - number of vehicles that entered the lane in the last simulation step",
+                  "simulation_time": "float (seconds)"
+                }
+              }
+            }
+          ],
+          "snapshots_by_time": "dict[float, dict] (indexed by simulation_time)",
+          "total_snapshots": "int",
+          "filtered_snapshots": "int"
+        }
+      },
+      "usage_example": "```python\n# Check for errors first\ndata = read_lane_traffic_states()\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    snapshots = data.get('snapshots', [])\n    if len(snapshots) > 0:\n        recent = snapshots[-1]\n        lane_states = recent.get('lane_states', {})\n        for lane_id, lane_data in lane_states.items():\n            queue_length = lane_data.get('queue_length', 0)\n\n# Filter by time range\ndata = read_lane_traffic_states(start_time=0, end_time=600)\n```"
+    }
+  ]
+}
+

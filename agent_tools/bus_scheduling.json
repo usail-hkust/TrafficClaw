@@ -1,0 +1,194 @@
+{
+  "data": [
+        {
+          "name": "zone_dict",
+          "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary mapping zone_id to zone infrastructure information. Use zone_dict to find which bus stops belong to specific zones via the 'bus_stops' field. See zone_info.json for full documentation. Use directly: `zone_dict`, NOT `zone_dict()`.",
+          "data_format": {
+            "type": "dict",
+            "relevant_fields": {
+              "bus_stops": "List of bus stop IDs in this zone",
+              "subway_stations": "List of subway station IDs in this zone (for transfer analysis)"
+            }
+          },
+          "usage_example": "```python\n# Find bus stops in a specific zone\nzone_id = '2_5'\nif zone_id in zone_dict:\n    bus_stops = zone_dict[zone_id]['bus_stops']\n    print(f\"Bus stops in zone {zone_id}: {bus_stops}\")\n\n# Find zones with transit stations\ntransit_zones = [zid for zid, info in zone_dict.items() \n                 if info['bus_stops'] or info['subway_stations']]\n```"
+        },
+        {
+          "name": "bus_route_info",
+          "description": "Dictionary containing detailed bus route information including static structure (stations, segments, zones served) and real-time operational data (current headway, active buses, delays). Updated during simulation runs. See zone_info.json for full documentation.",
+          "data_format": {
+            "type": "dict",
+            "structure": {
+              "route_id": {
+                "route_id": "str - route identifier",
+                "route_name": "str - human-readable route name",
+                "direction": "str - route direction (e.g., 'eastbound', 'westbound')",
+                "edges": "List[str] - ordered list of edge IDs along the route",
+                "total_length_m": "float - total route length in meters",
+                "scheduled_runtime_s": "float - planned end-to-end runtime in seconds",
+                "stations": "List of station info dicts with station_id, zone_id, position_m, stop_index",
+                "segments": "List of segment info dicts with from_station, to_station, length_m, scheduled_travel_time_s",
+                "zones_served": "List[str] - list of zone IDs the route passes through",
+                "transfer_stations": "List of transfer station info with connecting_routes and connecting_subway_lines",
+                "realtime": {
+                  "current_headway_s": "float - current dispatch interval",
+                  "scheduled_headway_s": "float - planned dispatch interval",
+                  "active_buses": "List[str] - vehicle IDs currently in service",
+                  "bus_count": "int - number of active buses",
+                  "segment_status": "List of segment status with current_travel_time_s, delay_s, buses_in_segment",
+                  "station_load": "List of station load with waiting_passengers, boarding_rate, alighting_rate",
+                  "last_update_step": "int - simulation step of last update"
+                }
+              }
+            }
+          },
+          "usage_example": "```python\n# Get route information\nroute_id = 'route_bus1_eastbound'\nif route_id in bus_route_info:\n    route = bus_route_info[route_id]\n    print(f\"Route {route['route_name']}: {route['total_length_m']:.0f}m\")\n    print(f\"Zones served: {route['zones_served']}\")\n    \n    # Check real-time data\n    rt = route['realtime']\n    print(f\"Active buses: {rt['bus_count']}\")\n    print(f\"Current headway: {rt['current_headway_s']}s\")\n    \n    # Find delayed segments\n    for seg in rt['segment_status']:\n        if seg['delay_s'] > 60:\n            print(f\"Delay on {seg['from_station']} -> {seg['to_station']}: {seg['delay_s']}s\")\n```"
+        },
+        {
+          "name": "transit_graph",
+          "description": "NetworkX DiGraph representing the public transit network including bus and subway routes and stations. Nodes are either routes or stations, edges represent service relationships. See zone_info.json for full documentation.",
+          "data_format": {
+            "type": "NetworkX DiGraph",
+            "nodes": {
+              "route_id": "Bus or subway route identifier (node_type='route')",
+              "station_id": "Bus stop or subway station identifier (node_type='station')"
+            },
+            "edges": {
+              "route -> station": "Route serves this station (edge_type='serves')",
+              "station -> station": "Sequential stops on a route (edge_type='next_stop')"
+            }
+          },
+          "usage_example": "```python\n# Find all stations served by a route\nroute_id = 'route_bus1_eastbound'\nstations = [n for n in transit_graph.successors(route_id) \n            if transit_graph.nodes[n].get('node_type') == 'station']\n\n# Find routes serving a station\nstation_id = 'stop_bus1_0_east'\nroutes = [n for n in transit_graph.predecessors(station_id)\n          if transit_graph.nodes[n].get('node_type') == 'route']\n```"
+        },
+    {
+      "name": "current_bus_schedule",
+      "description": "**PRE-DEFINED VARIABLE (dict)**: Dictionary containing the current bus scheduling configuration for all routes with time-based scheduling support. CRITICAL: (1) Use copy.deepcopy() to copy structure - DO NOT manually reconstruct. (2) DO NOT MODIFY station_id or time_range values. (3) ONLY modify headway and dwell_time values. Use directly: `current_bus_schedule`, NOT `current_bus_schedule()`.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "route_id": {
+            "timetable": [
+              {
+                "time_range": "[start_time, end_time] in seconds (list of 2 ints). Time periods within an hour for different scheduling strategies",
+                "headway": "time between buses in seconds (int). CONSTRAINTS: min=60 (1 min), max=600 (10 min), default=180 (3 min)",
+                "schedule": [
+                  {
+                    "station_id": "station identifier (str)",
+                    "dwell_time": "time spent at station in seconds (int). CONSTRAINTS: min=10, max=60, default=20"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "constraints": {
+          "time_range": {
+            "description": "Time periods in seconds within simulation. Multiple time ranges allow different headways for peak/off-peak hours. Time ranges must not overlap and should cover the entire simulation period. WARNING: DO NOT MODIFY time_range values when creating new configurations - always copy them exactly from current_bus_schedule."
+          },
+          "headway": {
+            "min": 60,
+            "max": 600,
+            "default": 180,
+            "description": "Minimum 60 seconds (1 min) to ensure safe bus separation. Maximum 600 seconds (10 min) to maintain reasonable service frequency."
+          },
+          "dwell_time": {
+            "min": 10,
+            "max": 60,
+            "default": 20,
+            "description": "Minimum 10 seconds for passenger boarding/alighting. Maximum 60 seconds to avoid excessive delays."
+          }
+        },
+        "example": {
+          "route_bus1_eastbound": {
+            "timetable": [
+              {
+                "time_range": [0, 1200],
+                "headway": 180,
+                "schedule": [
+                  {"station_id": "stop_bus1_0_east", "dwell_time": 20},
+                  {"station_id": "stop_bus1_1_east", "dwell_time": 20},
+                  {"station_id": "stop_bus1_2_east", "dwell_time": 20}
+                ]
+              },
+              {
+                "time_range": [1200, 2400],
+                "headway": 120,
+                "schedule": [
+                  {"station_id": "stop_bus1_0_east", "dwell_time": 15},
+                  {"station_id": "stop_bus1_1_east", "dwell_time": 15},
+                  {"station_id": "stop_bus1_2_east", "dwell_time": 15}
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "usage_example": "```python\n# CRITICAL: Use copy.deepcopy() to copy structure\nimport copy\nnew_config = {}\nfor route_id, config in current_bus_schedule.items():\n    new_config[route_id] = {\"timetable\": []}\n    for period in config['timetable']:\n        new_period = {\n            \"time_range\": period[\"time_range\"],  # DO NOT MODIFY - copy exact time range\n            \"headway\": 150,  # Modify headway as needed\n            \"schedule\": copy.deepcopy(period[\"schedule\"])  # COPY exact station list\n        }\n        # Modify dwell times\n        for station in new_period[\"schedule\"]:\n            station[\"dwell_time\"] = 18  # Modify as needed\n        new_config[route_id][\"timetable\"].append(new_period)\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "read_bus_states",
+      "description": "Query historical bus operation data. Returns a DICT with keys: 'snapshots', 'metadata', 'total_snapshots'. Access snapshots via data['snapshots']. Each station in snapshot.bus.lines[line_id].stations[station_id] has 'waiting_count' (int), 'avg_waiting_time', 'max_waiting_time', 'waiting_time_distribution'. DO NOT use open() or json.load() directly. Automatically uses the most recent traffic states file.",
+      "input_format": {
+        "start_time": "Optional start time filter in seconds (float, default: None)",
+        "end_time": "Optional end time filter in seconds (float, default: None)",
+        "exact_time": "Optional exact time filter in seconds (float, default: None)",
+        "line_id": "Optional filter by specific bus route (str, default: None)",
+        "max_snapshots": "Optional maximum number of snapshots to return (int, default: None for all)"
+      },
+      "output_format": {
+        "type": "dict",
+        "structure": {
+          "metadata": {
+            "simulation_id": "str",
+            "start_time": "str",
+            "file_path": "str - path to traffic states file"
+          },
+          "snapshots": [
+            {
+              "simulation_time": "float (seconds)",
+              "bus": {
+                "lines": {
+                  "line_id": {
+                    "active_buses": "int - number of buses currently running on this route",
+                    "headway": "float - scheduled headway in seconds",
+                    "station_count": "int - number of stations on this route",
+                    "buses": {
+                      "bus_id": {
+                        "departure_time": "float - when bus departed (seconds)",
+                        "travel_time": "float - time since departure (seconds)",
+                        "current_edge": "str - current road/edge ID",
+                        "speed": "float - current speed (m/s)",
+                        "passenger_count": "int - current number of passengers",
+                        "capacity": "int - bus capacity",
+                        "load_ratio": "float - passenger_count/capacity (0.0-1.0)",
+                        "next_station": "str - next stop station ID",
+                        "next_station_dwell_time": "float - planned dwell time at next station (seconds)"
+                      }
+                    },
+                    "stations": {
+                      "station_id": {
+                        "waiting_count": "int - number of passengers waiting at station",
+                        "avg_waiting_time": "float - average waiting time (seconds)",
+                        "max_waiting_time": "float - maximum waiting time (seconds)",
+                        "waiting_time_distribution": {
+                          "0-60s": "int - count of passengers waiting 0-60 seconds",
+                          "60-180s": "int - count of passengers waiting 60-180 seconds",
+                          "180-300s": "int - count of passengers waiting 180-300 seconds",
+                          ">300s": "int - count of passengers waiting over 300 seconds"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "total_snapshots": "int - total number of snapshots returned"
+        }
+      },
+      "usage_example": "```python\n# Get bus states\ndata = read_bus_states()\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    for snapshot in data['snapshots']:\n        sim_time = snapshot['simulation_time']\n        bus_data = snapshot['bus']\n        for line_id, state in bus_data['lines'].items():\n            print(f\"{line_id} at {sim_time}s: {state['active_buses']} buses, headway={state['headway']}s\")\n            for station_id, station in state['stations'].items():\n                if station.get('waiting_count', 0) > 0:\n                    print(f\"  Station {station_id}: {station['waiting_count']} waiting\")\n```"
+    }
+  ]
+}
+

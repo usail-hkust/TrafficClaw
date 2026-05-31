@@ -1,0 +1,191 @@
+{
+    "data": [
+        {
+            "name": "taxi_fleet_state",
+            "description": "Current state of the taxi fleet including all taxis' positions, states, and metrics. Use this to understand the current fleet situation and identify available taxis for dispatch or repositioning.",
+            "data_format": {
+                "type": "dict",
+                "structure": {
+                    "fleet_size": "int - Total number of taxis",
+                    "idle_count": "int - Number of idle/available taxis",
+                    "pickup_count": "int - Number of taxis en route to pick up passengers",
+                    "occupied_count": "int - Number of taxis currently carrying passengers",
+                    "idle_taxis": "list[str] - List of idle taxi IDs",
+                    "pickup_taxis": "list[str] - List of pickup taxi IDs",
+                    "occupied_taxis": "list[str] - List of occupied taxi IDs",
+                    "utilization_rate": "float - Ratio of busy taxis (0.0-1.0)",
+	                    "taxi_details": {
+	                        "taxi_id": {
+	                            "state": "str - Current taxi state (idle/pickup/occupied)",
+	                            "customers": "str - Number of customers served",
+	                            "current_edge": "str - Current road edge ID",
+	                            "current_taz": "str - Current TAZ ID (if available)",
+	                            "position": "[float, float] - Current position (x, y)",
+	                            "speed": "float - Current speed (m/s)",
+	                            "cumulative_income": "float - Cumulative income proxy for fairness (cross-checkpoint)",
+	                            "recent_order_count": "int - Number of recent dispatches in rolling window"
+	                        }
+	                    }
+	                }
+	            },
+            "usage_example": "```python\n# Check fleet utilization\nfleet = taxi_fleet_state\nprint(f\"Fleet size: {fleet['fleet_size']}\")\nprint(f\"Idle: {fleet['idle_count']}, Pickup: {fleet['pickup_count']}, Occupied: {fleet['occupied_count']}\")\n\n# Get available taxis for dispatch\nidle_taxis = fleet['idle_taxis']\nfor taxi_id in idle_taxis[:5]:\n    details = fleet['taxi_details'][taxi_id]\n    print(f\"Taxi {taxi_id} at edge {details['current_edge']}\")\n```"
+        },
+        {
+            "name": "pending_reservations",
+            "description": "List of pending taxi reservations (waiting passengers). Use this to identify passengers who need to be picked up and assign taxis to them.",
+            "data_format": {
+                "type": "dict",
+                "structure": {
+                    "pending_count": "int - Number of waiting passengers",
+                    "reservations": [
+                        {
+                            "id": "str - Unique reservation ID",
+                            "state": "int - SUMO reservation state code (e.g., 1=new, 4=assigned, 8=picked up)",
+                            "person_ids": "list[str] - Person IDs in this reservation",
+                            "from_edge": "str - Pickup edge ID",
+                            "to_edge": "str - Dropoff edge ID",
+                            "depart_time": "float - Requested departure time",
+                            "reservation_time": "float - When reservation was created",
+                            "pickup_position": "Optional [float, float] - Person pickup (x, y) position (when available)",
+                            "pickup_road_id": "Optional str - Person road ID at pickup (when available)"
+                        }
+                    ]
+                }
+            },
+            "usage_example": "```python\n# Check pending reservations\nreservations = pending_reservations\nprint(f\"Waiting passengers: {reservations['pending_count']}\")\n\nfor res in reservations['reservations'][:10]:\n    print(f\"Reservation {res['id']}: from {res['from_edge']} to {res['to_edge']}\")\n```"
+        },
+	        {
+	            "name": "current_taxi_config",
+	            "description": "**PRE-DEFINED VARIABLE (dict)**: Current taxi scheduling configuration. Use this to understand the current dispatch and repositioning settings. Use directly: `current_taxi_config`, NOT `current_taxi_config()`.",
+	            "data_format": {
+	                "type": "dict",
+	                "structure": {
+	                    "dispatch_strategy": "str - 'llm' | 'greedy' | 'online_eta' | 'online' | 'online_matching_eta'",
+	                    "dispatch_decisions": "Optional list[dict] - Dispatch overrides: [{'taxi_id': str, 'reservation_ids': [str]}]",
+	                    "fallback_to_greedy_dispatch": "bool - If dispatch_strategy=='llm' and no dispatch_decisions, use greedy online fill",
+	                    "greedy_distance_tie_threshold": "float - Distance margin (m) to treat taxis as near-equal candidates",
+	                    "greedy_score_weights": "dict - {'distance': float, 'income': float, 'recent_orders': float} (lower is better)",
+	                    "online_dispatch_cost_weights": "dict - {'eta': float, 'income': float, 'recent_orders': float} (normalized per reservation, lower is better)",
+	                    "online_dispatch_candidate_k": "int - Max candidate taxis per reservation for ETA scoring",
+	                    "online_dispatch_max_reservations": "int - Max reservations to consider per control cycle",
+	                    "online_dispatch_assumed_speed_mps": "float - Fallback speed when route ETA is unavailable",
+	                    "recent_order_window_seconds": "float - Rolling window for recent_order_count fairness",
+	                    "fare_base": "float - Base fare (income proxy, added at dropoff)",
+	                    "fare_per_second": "float - Fare rate per second of travel (income proxy, added at dropoff)",
+	                    "dispatch_retry_max_seconds": "float - Drop queued dispatch after this age (s)",
+	                    "dispatch_retry_max_attempts": "int - Drop queued dispatch after this many attempts",
+	                    "reposition_enabled": "bool - Whether repositioning is enabled",
+	                    "reposition_strategy": "str - 'llm' | 'auto_taz_balance' | 'taz_balance' | 'auto' | 'online'",
+	                    "reposition_decisions": "Optional list[dict] - Reposition overrides: [{'taxi_id': str, 'target_edge': str}|{'taxi_id': str, 'target_taz': str}]",
+	                    "fallback_to_auto_reposition": "bool - If reposition_strategy=='llm' and no reposition_decisions, use auto reposition",
+	                    "reposition_interval_seconds": "int - How often to check for repositioning (seconds)",
+	                    "min_idle_taxis_ratio": "float - Minimum ratio of idle taxis (0.0-1.0)",
+	                    "auto_reposition_max_ratio": "float - Fraction of idle taxis to reposition per cycle",
+	                    "auto_reposition_max_per_cycle": "int - Hard cap per cycle",
+	                    "auto_reposition_cooldown_seconds": "float - Per-taxi cooldown between repositions",
+	                    "auto_reposition_critical_only": "bool - Only target TAZs with demand>0 and supply==0",
+	                    "auto_reposition_top_taz": "int - When not critical_only, pick top-N demand/supply zones",
+	                    "high_demand_zones": "list[str] - Edge IDs of high-demand zones",
+	                    "fleet_size": "int - Total fleet size"
+	                }
+	            },
+	            "usage_example": "```python\n# Switch to online dispatch + auto reposition (recommended)\npolicy = current_taxi_config.copy()\npolicy.update({\n    'dispatch_strategy': 'online_eta',\n    'online_dispatch_cost_weights': {'eta': 0.8, 'income': 0.1, 'recent_orders': 0.1},\n    'reposition_strategy': 'auto_taz_balance',\n    'auto_reposition_max_ratio': 0.05,\n})\nconfig = {\"taxi_scheduling\": policy}\n```"
+	        },
+        {
+            "name": "taz_stats",
+            "description": "Current Traffic Analysis Zone (TAZ) statistics including demand, matching rate, and supply. Use this to identify high-demand/low-supply zones for repositioning.",
+            "data_format": {
+                "type": "dict",
+                "structure": {
+                    "taz_id": {
+                        "demand": "int - Number of pending reservations originating in this TAZ",
+                        "supply": "int - Number of idle taxis currently in this TAZ",
+                        "total_taxis": "int - Total number of taxis in this TAZ",
+                        "incoming_supply": "int - Number of taxis currently moving to this TAZ"
+                    }
+                }
+            },
+            "usage_example": "```python\n# Identify high demand zones\nfor taz_id, stats in taz_stats.items():\n    if stats['demand'] > 0 and stats['supply'] == 0:\n        print(f\"TAZ {taz_id} needs taxis! Demand: {stats['demand']}\")\n```"
+        }
+    ],
+    "functions": [
+        {
+            "name": "read_taxi_traffic_states",
+            "description": "Query historical taxi traffic states. Returns a DICT with keys: 'snapshots', 'total_snapshots', 'filtered_snapshots'. Check for 'error' key first. Use data.get('snapshots', []) for safe access. Automatically uses the most recent traffic states file.",
+            "input_format": {
+                "start_time": "Optional start time filter in seconds (float, default: None)",
+                "end_time": "Optional end time filter in seconds (float, default: None)",
+                "exact_time": "Optional exact time filter in seconds (float, default: None)",
+                "max_snapshots": "Optional maximum number of snapshots to read (int, default: None)"
+            },
+            "output_format": {
+                "type": "dict",
+                "structure": {
+                    "snapshots": [
+                        {
+                            "simulation_time": "float (seconds)",
+                            "fleet_size": "int",
+                            "idle_count": "int",
+                            "pickup_count": "int",
+                            "occupied_count": "int",
+                            "pending_reservations": "int",
+                            "utilization_rate": "float"
+                        }
+                    ],
+                    "total_snapshots": "int",
+                    "filtered_snapshots": "int"
+                }
+            },
+            "usage_example": "```python\n# Check for errors first\ndata = read_taxi_traffic_states(start_time=current_time-3600, end_time=current_time)\nif 'error' in data:\n    print(f\"Error: {data['error']}\")\nelse:\n    snapshots = data.get('snapshots', [])\n    for snapshot in snapshots:\n        print(f\"Time {snapshot['simulation_time']}: {snapshot.get('idle_count', 0)} idle, {snapshot.get('pending_reservations', 0)} waiting\")\n```"
+        },
+	        {
+	            "name": "dispatch_taxi",
+	            "description": "Build a dispatch override decision entry for taxi scheduling config. Recommended usage: keep dispatch_strategy='online_eta' and only add a few overrides when necessary; the simulator will fill the rest online.",
+	            "input_format": {
+	                "taxi_id": "str - ID of the taxi to dispatch (must be idle)",
+	                "reservation_ids": "list[str] - List of reservation IDs to assign to this taxi"
+	            },
+            "output_format": {
+                "taxi_id": "str",
+                "reservation_ids": "list[str]"
+            },
+            "usage_example": "```python\n# Build a dispatch decision for the first idle taxi -> first waiting reservation\nidle_taxis = taxi_fleet_state['idle_taxis']\nreservations = pending_reservations['reservations']\n\ndispatch_decisions = []\nif idle_taxis and reservations:\n    dispatch_decisions.append(dispatch_taxi(taxi_id=idle_taxis[0], reservation_ids=[reservations[0]['id']]))\n```"
+        },
+	        {
+	            "name": "reposition_taxi",
+	            "description": "Build a reposition override decision entry for taxi scheduling config. Recommended usage: set reposition_strategy='auto_taz_balance' (online), and optionally add a few overrides for special cases.",
+	            "input_format": {
+	                "taxi_id": "str - ID of the taxi to reposition (must be idle)",
+	                "target_edge": "Optional str - Edge ID where the taxi should go",
+	                "target_taz": "Optional str - TAZ ID where the taxi should go (system selects edge)"
+            },
+            "output_format": {
+                "taxi_id": "str",
+                "target_edge": "Optional str",
+                "target_taz": "Optional str"
+            },
+            "usage_example": "```python\n# Build a reposition decision for an idle taxi\nidle_taxis = taxi_fleet_state['idle_taxis']\n# Example: use the first configured high-demand edge if provided\nhigh_demand_edge = (current_taxi_config.get('high_demand_zones') or [None])[0]\n\nreposition_decisions = []\nif idle_taxis and high_demand_edge:\n    reposition_decisions.append(reposition_taxi(taxi_id=idle_taxis[0], target_edge=high_demand_edge))\n```"
+        },
+        {
+            "name": "rank_idle_taxis_by_distance",
+            "description": "Rank idle taxis by Euclidean distance to a pending reservation pickup_position (requires pending_reservations[*].pickup_position). Returns the closest candidates for distance-based dispatch.",
+            "input_format": {
+                "reservation_id": "Optional str - Reservation ID (looks up in pending_reservations)",
+                "reservation": "Optional dict - Reservation object from pending_reservations['reservations']",
+                "max_candidates": "Optional int - Max number of candidates to return (default: 10)"
+            },
+            "output_format": {
+                "type": "list[dict]",
+                "structure": [
+                    {
+                        "taxi_id": "str",
+                        "distance": "float",
+                        "current_edge": "str",
+                        "position": "[float, float]"
+                    }
+                ]
+            },
+            "usage_example": "```python\n# Choose nearest idle taxi by Euclidean distance\nres = pending_reservations['reservations'][0]\ncandidates = rank_idle_taxis_by_distance(reservation=res, max_candidates=5)\nif candidates:\n    taxi_id = candidates[0]['taxi_id']\n    dispatch_decisions = [dispatch_taxi(taxi_id=taxi_id, reservation_ids=[res['id']])]\n```"
+        }
+    ]
+}

@@ -1,0 +1,43 @@
+# Local/agent folders
+backup/
+.claude/
+.qwen
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs / reports
+*.log
+*.out
+*.err
+
+# SUMO / tooling intermediates
+sumo_network/*.localcache.pkl
+sumo_config
+sumo_config_highway
+sumo_output/*tmp*
+sumo_output/*.rou.xml
+sumo_output/*.add.xml
+examples/**/pt_*.rou.xml
+examples/**/persons.rou.xml
+logs
+!examples/od_planner/sample_nyc_bus/persons.rou.xml
+records
+.idea
+playgrounds
+examples
+sumo_output
+control_configs
+inspect_*
+scripts/
+**/wandb
+wandb
+sft
+test*
+baseline_scripts
+*.sh
+docs
+.qwen
+githubs

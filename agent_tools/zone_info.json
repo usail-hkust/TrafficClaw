@@ -1,0 +1,333 @@
+{
+  "data": [
+    {
+      "name": "zone_dict",
+      "description": "Dictionary mapping zone_id (TAZ ID) to zone infrastructure information. Each zone contains references to all infrastructure elements within its boundaries including lanes, intersections, highways, ramps, and transit stations. Now includes zone subgraphs (derived from Foundation Layer) and boundary information.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "zone_id": {
+            "zone_id": "TAZ ID (str), e.g., '2_5', '3_5'",
+            "shape": "List of (x, y) coordinate tuples defining zone polygon boundary",
+            "edges": "List of all edge IDs within the zone",
+            "lanes": "List of all lane IDs within the zone",
+            "intersections": "List of traffic light controlled intersection/junction IDs",
+            "highway_segments": "List of highway segment IDs (format: 'seg_{edge_id}')",
+            "highway_edges": "List of highway edge IDs",
+            "ramps": "List of ramp TLS (traffic light system) IDs",
+            "ramp_lanes": "List of ramp-controlled lane IDs",
+            "subway_stations": "List of subway station IDs in this zone",
+            "bus_stops": "List of bus stop IDs in this zone",
+            "subgraphs": {
+              "lane_subgraph": "NetworkX DiGraph - zone's lane connectivity subgraph (from Foundation Layer)",
+              "road_subgraph": "NetworkX DiGraph - zone's road connectivity subgraph (from Foundation Layer)",
+              "transit_subgraph": "NetworkX DiGraph - zone's transit subgraph (stations + routes)"
+            },
+            "boundary": {
+              "entry_roads": "List of road IDs that enter this zone from outside",
+              "exit_roads": "List of road IDs that exit this zone to outside",
+              "boundary_intersections": "List of intersection IDs at zone boundaries"
+            },
+            "stats": {
+              "total_lanes": "int - total number of lanes",
+              "total_intersections": "int - total number of intersections",
+              "total_highway_length_m": "float - total highway length in meters",
+              "total_bus_stops": "int - total number of bus stops",
+              "total_subway_stations": "int - total number of subway stations"
+            }
+          }
+        },
+        "example": {
+          "2_5": {
+            "zone_id": "2_5",
+            "shape": [[751.0, 2251.0], [1250.0, 2251.0], [1250.0, 2750.0], [751.0, 2750.0]],
+            "edges": ["664487637#0", "689037413#7", "123456789"],
+            "lanes": ["664487637#0_0", "664487637#0_1", "689037413#7_0"],
+            "intersections": ["cluster_123", "tls_456"],
+            "highway_segments": ["seg_highway_edge_1"],
+            "highway_edges": ["highway_edge_1"],
+            "ramps": ["ramp_tls_1"],
+            "ramp_lanes": ["ramp_lane_0", "ramp_lane_1"],
+            "subway_stations": ["subway_station_A"],
+            "bus_stops": ["stop_bus1_0_east", "stop_bus1_1_east"],
+            "subgraphs": {
+              "lane_subgraph": "<nx.DiGraph with zone lanes>",
+              "road_subgraph": "<nx.DiGraph with zone roads>",
+              "transit_subgraph": "<nx.DiGraph with zone transit>"
+            },
+            "boundary": {
+              "entry_roads": ["road_entering_zone"],
+              "exit_roads": ["road_exiting_zone"],
+              "boundary_intersections": ["intersection_at_boundary"]
+            },
+            "stats": {
+              "total_lanes": 45,
+              "total_intersections": 8,
+              "total_highway_length_m": 2500.5,
+              "total_bus_stops": 3,
+              "total_subway_stations": 1
+            }
+          }
+        }
+      },
+      "usage_example": "```python\n# Access zone infrastructure\nzone_id = '2_5'\nif zone_id in zone_dict:\n    zone_info = zone_dict[zone_id]\n    print(f\"Zone {zone_id} has {zone_info['stats']['total_lanes']} lanes\")\n    print(f\"Intersections: {zone_info['intersections']}\")\n    print(f\"Bus stops: {zone_info['bus_stops']}\")\n\n    # Access zone subgraphs (from Foundation Layer)\n    if 'subgraphs' in zone_info:\n        lane_subgraph = zone_info['subgraphs']['lane_subgraph']\n        if lane_subgraph:\n            print(f\"Zone lane subgraph has {len(lane_subgraph.nodes())} lanes\")\n\n    # Access boundary information\n    if 'boundary' in zone_info:\n        entry_roads = zone_info['boundary']['entry_roads']\n        exit_roads = zone_info['boundary']['exit_roads']\n        print(f\"Entry roads: {entry_roads}\")\n        print(f\"Exit roads: {exit_roads}\")\n\n# Find all zones with highways\nhighway_zones = [zid for zid, info in zone_dict.items() if info['highway_edges']]\nprint(f\"Zones with highways: {highway_zones}\")\n\n# Find zones with transit stations\ntransit_zones = [zid for zid, info in zone_dict.items() \n                 if info['subway_stations'] or info['bus_stops']]\n\n# Get all lanes in a zone\nzone_lanes = zone_dict[zone_id]['lanes']\n```"
+    },
+    {
+      "name": "zone_graph",
+      "description": "NetworkX DiGraph representing zone adjacency relationships. Nodes are zones, edges connect adjacent zones that share boundary junctions or edges. Enhanced with boundary road and capacity information.",
+      "data_format": {
+        "type": "NetworkX DiGraph",
+        "nodes": {
+          "zone_id": "TAZ ID (e.g., '2_5', '3_5')"
+        },
+        "node_attributes": {
+          "node_type": "'zone'",
+          "edge_count": "int - number of edges in the zone",
+          "intersection_count": "int - number of intersections",
+          "has_highway": "bool - whether zone contains highway edges",
+          "has_ramp": "bool - whether zone contains ramp TLS",
+          "has_transit": "bool - whether zone has subway stations or bus stops"
+        },
+        "edges": {
+          "zone1 -> zone2": "bidirectional edges between adjacent zones"
+        },
+        "edge_attributes": {
+          "edge_type": "'adjacent'",
+          "shared_junctions": "List of junction IDs shared between zones",
+          "shared_edges": "List of edge IDs connecting the zones",
+          "boundary_roads": "List of road IDs that cross the zone boundary",
+          "boundary_capacity": "float - total capacity of boundary roads (veh/hr estimate)"
+        }
+      },
+      "usage_example": "```python\n# Find adjacent zones\nzone_id = '2_5'\nadjacent_zones = list(zone_graph.successors(zone_id))\nprint(f\"Zones adjacent to {zone_id}: {adjacent_zones}\")\n\n# Get zone attributes\nfor node, attrs in zone_graph.nodes(data=True):\n    if attrs.get('has_highway'):\n        print(f\"Zone {node} has highways\")\n\n# Find shared boundaries between zones\nfor u, v, data in zone_graph.edges(data=True):\n    shared = data.get('shared_junctions', [])\n    boundary_roads = data.get('boundary_roads', [])\n    capacity = data.get('boundary_capacity', 0)\n    print(f\"{u} <-> {v}: {len(shared)} shared junctions, {len(boundary_roads)} boundary roads, capacity={capacity} veh/hr\")\n\n# Find all zones with transit\ntransit_zones = [n for n, d in zone_graph.nodes(data=True) if d.get('has_transit')]\n```"
+    },
+    {
+      "name": "network_graphs",
+      "description": "Foundation Layer (Layer 1) - Complete network graphs covering ALL infrastructure in the network. These are the authoritative source from which zone subgraphs and module-specific graphs are derived.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "lane_graph": {
+            "type": "NetworkX DiGraph",
+            "description": "Complete lane connectivity graph (all non-internal lanes)",
+            "nodes": "lane_id (str) - all lanes in the network",
+            "node_attributes": {
+              "lane_type": "'normal' | 'highway' | 'ramp'",
+              "road_id": "str - parent road ID",
+              "length": "float - lane length in meters",
+              "max_speed": "float - max speed in m/s",
+              "zone_id": "str | None - zone containing this lane"
+            },
+            "edge_attributes": {
+              "connection_type": "'direct' | 'via_junction'",
+              "junction_id": "str | None - junction ID for via_junction connections",
+              "via_internal_lane": "str | None - internal lane used for connection"
+            }
+          },
+          "road_graph": {
+            "type": "NetworkX DiGraph",
+            "description": "Complete road connectivity graph (all roads)",
+            "nodes": "road_id (str) - all roads in the network",
+            "node_attributes": {
+              "road_type": "str - SUMO road type",
+              "road_category": "'normal' | 'highway' | 'trunk' | 'ramp'",
+              "num_lanes": "int",
+              "length": "float - road length in meters",
+              "max_speed": "float - max speed in m/s",
+              "from_node": "str - start junction ID",
+              "to_node": "str - end junction ID",
+              "zone_id": "str | None"
+            },
+            "edge_attributes": {
+              "via_node": "str - junction connecting the roads",
+              "is_signalized": "bool - whether junction has traffic light"
+            }
+          },
+          "transit_graph": {
+            "type": "NetworkX DiGraph",
+            "description": "Complete transit network graph (all routes and stations)"
+          }
+        }
+      },
+      "usage_example": "```python\n# Access Foundation Layer graphs\nlane_graph = network_graphs['lane_graph']\nroad_graph = network_graphs['road_graph']\ntransit_graph = network_graphs['transit_graph']\n\n# Get all highway roads in the network\nhighway_roads = [\n    road_id for road_id in road_graph.nodes()\n    if road_graph.nodes[road_id].get('road_category') == 'highway'\n]\nprint(f\"Total highway roads: {len(highway_roads)}\")\n\n# Get all highway lanes\nhighway_lanes = [\n    lane_id for lane_id in lane_graph.nodes()\n    if lane_graph.nodes[lane_id].get('lane_type') == 'highway'\n]\nprint(f\"Total highway lanes: {len(highway_lanes)}\")\n\n# Find lane's zone\nlane_id = 'road_1_0'\nif lane_id in lane_graph.nodes():\n    zone_id = lane_graph.nodes[lane_id].get('zone_id')\n    print(f\"Lane {lane_id} is in zone {zone_id}\")\n```"
+    },
+    {
+      "name": "network_dicts",
+      "description": "Foundation Layer (Layer 1) - Complete metadata dictionaries covering ALL infrastructure in the network. More detailed than graph node attributes.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "lane_dict": {
+            "type": "dict",
+            "key": "lane_id",
+            "value": {
+              "road_id": "str - parent road ID",
+              "lane_type": "'normal' | 'highway' | 'ramp'",
+              "lane_index": "int - lane index on the road",
+              "length": "float - lane length in meters",
+              "max_speed": "float - max speed in m/s",
+              "zone_id": "str | None - zone containing this lane",
+              "direction": "'go_straight' | 'turn_left' | 'turn_right' | None",
+              "location": "'north' | 'south' | 'east' | 'west' | None",
+              "lane_group": "str | None - lane group ID for intersection lanes",
+              "connected_intersections": "List[str] - intersections this lane connects to",
+              "controlled_by_ramp": "str | None - ramp ID controlling this lane"
+            }
+          },
+          "road_dict": {
+            "type": "dict",
+            "key": "road_id",
+            "value": {
+              "road_type": "str - SUMO road type",
+              "road_category": "'normal' | 'highway' | 'trunk' | 'ramp'",
+              "priority": "int",
+              "num_lanes": "int",
+              "length": "float",
+              "max_speed": "float",
+              "from_node": "str",
+              "to_node": "str",
+              "zone_id": "str | None",
+              "lanes": "List[str] - lane IDs for this road",
+              "highway_segment_id": "str | None"
+            }
+          },
+          "station_dict": {
+            "type": "dict",
+            "key": "station_id",
+            "value": {
+              "station_type": "'bus_stop' | 'subway_station'",
+              "lane_id": "str - lane where station is located",
+              "zone_id": "str | None",
+              "position": "float - position along lane",
+              "routes": "List[str] - routes serving this station"
+            }
+          }
+        }
+      },
+      "usage_example": "```python\n# Access Foundation Layer dictionaries\nlane_dict = network_dicts['lane_dict']\nroad_dict = network_dicts['road_dict']\nstation_dict = network_dicts['station_dict']\n\n# Find all lanes controlled by ramps\nramp_controlled_lanes = [\n    lane_id for lane_id, info in lane_dict.items()\n    if info.get('controlled_by_ramp')\n]\nprint(f\"Lanes controlled by ramps: {len(ramp_controlled_lanes)}\")\n\n# Find all highway roads\nhighway_roads = [\n    road_id for road_id, info in road_dict.items()\n    if info.get('road_category') == 'highway'\n]\nprint(f\"Highway roads: {len(highway_roads)}\")\n\n# Get zone for a lane\nlane_id = 'road_1_0'\nif lane_id in lane_dict:\n    zone_id = lane_dict[lane_id].get('zone_id')\n    direction = lane_dict[lane_id].get('direction')\n    print(f\"Lane {lane_id}: zone={zone_id}, direction={direction}\")\n```"
+    },
+    {
+      "name": "transit_graph",
+      "description": "NetworkX DiGraph representing the public transit network including bus and subway routes and stations. Nodes are either routes or stations, edges represent service relationships.",
+      "data_format": {
+        "type": "NetworkX DiGraph",
+        "nodes": {
+          "route_id": "Bus or subway route identifier",
+          "station_id": "Bus stop or subway station identifier"
+        },
+        "node_attributes": {
+          "node_type": "'route' | 'station'",
+          "route_type": "'bus' | 'subway' (for route nodes)",
+          "station_type": "'bus_stop' | 'subway_station' (for station nodes)",
+          "zone_id": "Zone containing the station (for station nodes)",
+          "lane_id": "Lane where station is located (for station nodes)"
+        },
+        "edges": {
+          "route -> station": "Route serves this station",
+          "station -> station": "Sequential stops on a route"
+        },
+        "edge_attributes": {
+          "edge_type": "'serves' | 'next_stop'",
+          "stop_index": "int - position of station on route (for 'serves' edges)",
+          "route_id": "Route ID (for 'next_stop' edges)"
+        }
+      },
+      "usage_example": "```python\n# Find all stations served by a route\nroute_id = 'route_bus1_eastbound'\nstations = [n for n in transit_graph.successors(route_id) \n            if transit_graph.nodes[n].get('node_type') == 'station']\nprint(f\"Stations on {route_id}: {stations}\")\n\n# Find routes serving a station\nstation_id = 'stop_bus1_0_east'\nroutes = [n for n in transit_graph.predecessors(station_id)\n          if transit_graph.nodes[n].get('node_type') == 'route']\nprint(f\"Routes at {station_id}: {routes}\")\n\n# Get stations in order for a route\nstations_ordered = []\nfor n in transit_graph.successors(route_id):\n    edge_data = transit_graph.edges[route_id, n]\n    if edge_data.get('edge_type') == 'serves':\n        stations_ordered.append((edge_data['stop_index'], n))\nstations_ordered.sort()\nprint([s[1] for s in stations_ordered])\n\n# Find transfer stations (multiple routes)\nfor node, attrs in transit_graph.nodes(data=True):\n    if attrs.get('node_type') == 'station':\n        serving_routes = list(transit_graph.predecessors(node))\n        if len(serving_routes) > 1:\n            print(f\"Transfer station {node}: {serving_routes}\")\n```"
+    },
+    {
+      "name": "bus_route_info",
+      "description": "Dictionary containing detailed bus route information including static structure and real-time operational data. Updated during simulation runs.",
+      "data_format": {
+        "type": "dict",
+        "structure": {
+          "route_id": {
+            "route_id": "str - route identifier",
+            "route_name": "str - human-readable route name",
+            "direction": "str - route direction (e.g., 'eastbound', 'westbound')",
+            "edges": "List[str] - ordered list of edge IDs along the route",
+            "total_length_m": "float - total route length in meters",
+            "scheduled_runtime_s": "float - planned end-to-end runtime in seconds",
+            "stations": [
+              {
+                "station_id": "str - station identifier",
+                "zone_id": "str - zone containing this station",
+                "position_m": "float - position along route in meters",
+                "stop_index": "int - stop sequence number"
+              }
+            ],
+            "segments": [
+              {
+                "from_station": "str - origin station ID",
+                "to_station": "str - destination station ID",
+                "length_m": "float - segment length in meters",
+                "scheduled_travel_time_s": "float - planned travel time",
+                "intersections_count": "int - number of intersections in segment"
+              }
+            ],
+            "zones_served": "List[str] - list of zone IDs the route passes through",
+            "transfer_stations": [
+              {
+                "station_id": "str - transfer station ID",
+                "connecting_routes": "List[str] - other bus routes at this station",
+                "connecting_subway_lines": "List[str] - subway lines at this station"
+              }
+            ],
+            "realtime": {
+              "current_headway_s": "float - current dispatch interval",
+              "scheduled_headway_s": "float - planned dispatch interval",
+              "active_buses": "List[str] - vehicle IDs currently in service",
+              "bus_count": "int - number of active buses",
+              "segment_status": [
+                {
+                  "from_station": "str",
+                  "to_station": "str",
+                  "current_travel_time_s": "float - actual travel time",
+                  "delay_s": "float - delay vs schedule",
+                  "buses_in_segment": "List[str] - buses in this segment"
+                }
+              ],
+              "station_load": [
+                {
+                  "station_id": "str",
+                  "waiting_passengers": "int - passengers waiting",
+                  "boarding_rate": "float - passengers per minute",
+                  "alighting_rate": "float - passengers per minute"
+                }
+              ],
+              "last_update_step": "int - simulation step of last update"
+            }
+          }
+        }
+      },
+      "usage_example": "```python\n# Get route information\nroute_id = 'route_bus1_eastbound'\nif route_id in bus_route_info:\n    route = bus_route_info[route_id]\n    print(f\"Route {route['route_name']}: {route['total_length_m']:.0f}m\")\n    print(f\"Direction: {route['direction']}\")\n    print(f\"Zones served: {route['zones_served']}\")\n    \n    # List stations\n    for station in route['stations']:\n        print(f\"  Stop {station['stop_index']}: {station['station_id']} (Zone {station['zone_id']})\")\n    \n    # Check real-time data\n    rt = route['realtime']\n    print(f\"Active buses: {rt['bus_count']}\")\n    print(f\"Current headway: {rt['current_headway_s']}s\")\n    \n    # Find delayed segments\n    for seg in rt['segment_status']:\n        if seg['delay_s'] > 60:\n            print(f\"Delay on {seg['from_station']} -> {seg['to_station']}: {seg['delay_s']}s\")\n\n# Find routes through a specific zone\ntarget_zone = '2_5'\nroutes_in_zone = [rid for rid, info in bus_route_info.items() \n                  if target_zone in info['zones_served']]\nprint(f\"Routes through zone {target_zone}: {routes_in_zone}\")\n```"
+    }
+  ],
+  "functions": [
+    {
+      "name": "get_zone_infrastructure",
+      "description": "Query infrastructure for a specific zone. Returns filtered infrastructure information based on the requested type.",
+      "input_format": {
+        "zone_id": "Zone ID to query (str, required)",
+        "infra_type": "Type of infrastructure: 'all' | 'lanes' | 'intersections' | 'highways' | 'ramps' | 'transit' (str, default: 'all')"
+      },
+      "output_format": {
+        "type": "dict",
+        "returns": "Filtered zone information based on infra_type, or error dict if zone not found"
+      },
+      "usage_example": "```python\n# This function is available through zone_dict directly\n# Get all infrastructure for a zone\nzone_info = zone_dict.get('2_5', {})\n\n# Get specific infrastructure types by filtering\nzone_id = '2_5'\nif zone_id in zone_dict:\n    # Lanes only\n    lanes = zone_dict[zone_id]['lanes']\n    \n    # Intersections only\n    intersections = zone_dict[zone_id]['intersections']\n    \n    # Highways only\n    highway_info = {\n        'highway_segments': zone_dict[zone_id]['highway_segments'],\n        'highway_edges': zone_dict[zone_id]['highway_edges']\n    }\n    \n    # Transit only\n    transit_info = {\n        'subway_stations': zone_dict[zone_id]['subway_stations'],\n        'bus_stops': zone_dict[zone_id]['bus_stops']\n    }\n```"
+    },
+    {
+      "name": "get_zones_by_infrastructure",
+      "description": "Find zones containing a specific infrastructure element.",
+      "input_format": {
+        "infra_id": "Infrastructure element ID (str, required)",
+        "infra_type": "Type: 'edge' | 'lane' | 'intersection' | 'highway' | 'ramp' | 'subway_station' | 'bus_stop' (str, required)"
+      },
+      "output_format": {
+        "type": "list",
+        "returns": "List of zone IDs containing the infrastructure element"
+      },
+      "usage_example": "```python\n# Find zone containing a specific lane\nlane_id = '664487637#0_0'\nfor zone_id, info in zone_dict.items():\n    if lane_id in info['lanes']:\n        print(f\"Lane {lane_id} is in zone {zone_id}\")\n        break\n\n# Find zone containing a specific intersection\nintersection_id = 'cluster_123'\nfor zone_id, info in zone_dict.items():\n    if intersection_id in info['intersections']:\n        print(f\"Intersection {intersection_id} is in zone {zone_id}\")\n        break\n\n# Find zone containing a bus stop\nbus_stop_id = 'stop_bus1_0_east'\nfor zone_id, info in zone_dict.items():\n    if bus_stop_id in info['bus_stops']:\n        print(f\"Bus stop {bus_stop_id} is in zone {zone_id}\")\n        break\n```"
+    }
+  ]
+}
