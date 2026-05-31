@@ -257,7 +257,7 @@ python trafficclaw_tui.py
 | Duration / checkpoint interval | Simulation length and how often the LLM re-optimizes (defaults match `trafficclaw_runner.py` profiles). |
 | LLM model | Provider-prefixed name, e.g. `siliconflow/deepseek-ai/DeepSeek-V4-Flash`. |
 | API key | Prompted securely if the provider env var is missing (session-only; export it beforehand for non-interactive use). |
-| Zone | Manhattan, Queens, or Brooklyn. Highway/ramp modules automatically use `sumo_config_highway/`; other modules use `sumo_config/`. |
+| Zone | Inner Queens (`inner_queens` in the TUI). Highway/ramp modules use `sumo_config_highway/Inner_Queens_highway/`; other modules use `sumo_config/Inner_Queens/`. |
 | Wandb | Enable or disable remote metric logging. |
 
 After the summary screen, confirm to start. The TUI delegates to the same runners as the CLI (`run_single_control/*` or `run_joint_control/run_joint_control.py`), so results are identical to scripted runs.
@@ -285,88 +285,6 @@ After the summary screen, confirm to start. The TUI delegates to the same runner
 - Export API keys before launching for unattended servers, e.g. `export SILICONFLOW_API_KEY=...` or `export OPENAI_API_KEY=...`.
 - Use a real terminal (not a non-TTY log pipe) so runtime query input works; the TUI falls back to `/dev/tty` when needed.
 - For reproducible batch jobs, use the CLI runners below or `trafficclaw_runner.py`; the TUI is optimized for interactive exploration and demos.
-
-### CLI: single-subsystem control
-
-Traffic signal control:
-
-```bash
-python run_single_control/run_traffic_signal_control.py \
-  --config sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg \
-  --duration 86400 \
-  --checkpoint-interval 1800 \
-  --step-seconds 30 \
-  --llm-model siliconflow/deepseek-ai/DeepSeek-V4-Flash \
-  --control-modules signal_timing
-```
-
-Bus scheduling:
-
-```bash
-python run_single_control/run_bus_scheduling_control.py \
-  --config sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg \
-  --duration 86400 \
-  --checkpoint-interval 1800 \
-  --step-seconds 30 \
-  --llm-model siliconflow/deepseek-ai/DeepSeek-V4-Flash \
-  --control-modules bus_scheduling
-```
-
-Taxi dispatching:
-
-```bash
-python run_single_control/run_taxi_scheduling.py \
-  --config sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg \
-  --duration 3600 \
-  --checkpoint-interval 1800 \
-  --step-seconds 10 \
-  --llm-model siliconflow/deepseek-ai/DeepSeek-V4-Flash \
-  --control-modules taxi_scheduling
-```
-
-Other single-task runners:
-
-```bash
-python run_single_control/run_highway_speed_limit_control.py --control-modules highway_speed_limit
-python run_single_control/run_ramp_metering_control.py --control-modules ramp_metering
-python run_single_control/run_subway_scheduling_control.py --control-modules subway_scheduling
-```
-
-### CLI: joint cross-subsystem control
-
-```bash
-python run_joint_control/run_joint_control.py \
-  --config sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg \
-  --duration 86400 \
-  --checkpoint-interval 3600 \
-  --step-seconds 30 \
-  --llm-model siliconflow/deepseek-ai/DeepSeek-V4-Flash \
-  --control-modules signal_timing bus_scheduling \
-  --always-enabled signal_timing ramp_metering
-```
-
-Examples of cooperative task suites from the paper include:
-
-- `signal_timing bus_scheduling`
-- `signal_timing highway_speed_limit`
-- `highway_speed_limit ramp_metering`
-
-### Callable Python entry point
-
-```python
-from trafficclaw_runner import TrafficClawSimulationEntrypoint, SimulationRunOptions
-
-runner = TrafficClawSimulationEntrypoint()
-result = runner.run(
-    SimulationRunOptions(
-        control_modules=["signal_timing", "bus_scheduling"],
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
-        duration=3600,
-        checkpoint_interval=1800,
-        llm_model="siliconflow/deepseek-ai/DeepSeek-V4-Flash",
-    )
-)
-```
 
 ## GRPO Training with VeRL
 
@@ -425,7 +343,6 @@ verl/deepcity_test/data/deepcity_val.parquet
 Edit `verl/deepcity_test/deepcity_interaction_config.yaml` before launching:
 
 - Replace every `sumo_config_path` with paths that exist on your machine.
-- For highway-speed-limit tasks, use the `sumo_config_highway/...` scenarios.
 - Set `judge_llm.api_key`, or set `judge_llm.enabled: false` for a no-judge smoke test.
 - Keep `num_masters`, `num_val_masters`, `data.train_batch_size`, and `actor_rollout_ref.rollout.agent.num_workers` consistent with your GPU and CPU capacity. Each rollout can start SUMO simulations.
 
