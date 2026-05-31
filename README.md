@@ -252,13 +252,6 @@ hf download TrafficClaw/TrafficClaw-Env-Data \
   --local-dir .
 ```
 
-For GRPO training, replace the absolute `sumo_config_path` entries in `verl/deepcity_test/deepcity_interaction_config.yaml` with the downloaded root-relative paths such as:
-
-```yaml
-sumo_config_path: "Data/sumo_config/Manhattan/Upper_Manhattan.sumocfg"
-sumo_config_path: "Data/sumo_config_highway/Manhattan/Upper_Manhattan.sumocfg"
-```
-
 ## Quick Start
 
 The recommended way to run TrafficClaw is the built-in terminal UI. You do not need to assemble long CLI commands for everyday experiments.
