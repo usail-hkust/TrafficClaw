@@ -68,11 +68,11 @@ interaction:
       # If control_modules contains highway_speed_limit, use sumo_config_highway network
       random_environment_pool:
         sumo_config_paths:
-          - "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
-          - "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+          - "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
+          - "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
         sumo_config_highway_paths:
-          - "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
-          - "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+          - "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
+          - "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
         control_modules:
           - "bus_scheduling"
           - "signal_timing"
@@ -89,45 +89,45 @@ interaction:
         # ====== 1. Single Module Training (4 modules × 2 maps = 8 environments) ======
 
         # signal_timing alone
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
           episodes: 1
 
         # bus_scheduling alone
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "bus_scheduling"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "bus_scheduling"
           episodes: 1
 
         # taxi_scheduling alone
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "taxi_scheduling"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "taxi_scheduling"
           episodes: 1
 
         # highway_speed_limit alone (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "highway_speed_limit"
           episodes: 1
@@ -135,78 +135,78 @@ interaction:
         # ====== 2. Pairwise Module Combinations (6 combinations × 2 maps = 12 environments) ======
 
         # signal_timing + bus_scheduling
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
           episodes: 1
 
         # signal_timing + taxi_scheduling
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "taxi_scheduling"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "taxi_scheduling"
           episodes: 1
 
         # signal_timing + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
           episodes: 1
 
         # bus_scheduling + taxi_scheduling
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "taxi_scheduling"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "taxi_scheduling"
           episodes: 1
 
         # bus_scheduling + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
         # taxi_scheduling + highway_speed_limit (highway network)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "taxi_scheduling"
             - "highway_speed_limit"
           episodes: 1
 
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "taxi_scheduling"
             - "highway_speed_limit"
@@ -216,7 +216,7 @@ interaction:
 
         # ====== 5. All modules: signal + bus + taxi + highway (highway network) [Commented: 4 modules] ======
 
-        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
         #   control_modules:
         #     - "signal_timing"
         #     - "bus_scheduling"
@@ -224,7 +224,7 @@ interaction:
         #     - "highway_speed_limit"
         #   episodes: 1
 
-        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        # - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
         #   control_modules:
         #     - "signal_timing"
         #     - "bus_scheduling"
@@ -245,7 +245,7 @@ interaction:
       # Recommended: val environment count ≥ num_val_masters to fully utilize all val Masters
       #
       # Val Strategy: Fixed 6 environments, each validation runs from 0:00 to 3:00 (6 time steps)
-      # 3 Upper_Manhattan + 3 Inner_Queens, each map with 3 module combinations
+      # 3 Manhattan + 3 Queens, each map with 3 module combinations
       # val_simulation_duration controls val simulation total duration (10800s = 3h = 6 × 30min checkpoint)
       val_simulation_duration: 10800  # Val simulation duration (seconds), resets to 0:00 after completion
       val_environments:
@@ -253,20 +253,20 @@ interaction:
         # ====== Manhattan ======
 
         # Val 0: signal + bus + highway (highway Manhattan)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
             - "highway_speed_limit"
 
         # Val 1: signal + highway (highway Manhattan)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Manhattan_highway/Manhattan.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
 
         # Val 2: bus + taxi (Manhattan)
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Upper_Manhattan/Upper_Manhattan.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Manhattan/Manhattan.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "taxi_scheduling"
@@ -274,20 +274,20 @@ interaction:
         # ====== Queens ======
 
         # Val 3: signal + bus + highway (highway Queens)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "bus_scheduling"
             - "highway_speed_limit"
 
         # Val 4: signal + highway (highway Queens)
-        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Inner_Queens_highway/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/sumo_config_highway/Queens_highway/Queens.sumocfg"
           control_modules:
             - "signal_timing"
             - "highway_speed_limit"
 
         # Val 5: bus + taxi (Queens)
-        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Inner_Queens/Inner_Queens.sumocfg"
+        - sumo_config_path: "/home/apulis-dev/userdata/DeepCity/zp/Queens/Queens.sumocfg"
           control_modules:
             - "bus_scheduling"
             - "taxi_scheduling"

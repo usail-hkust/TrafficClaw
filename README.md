@@ -257,7 +257,7 @@ python trafficclaw_tui.py
 | Duration / checkpoint interval | Simulation length and how often the LLM re-optimizes (defaults match `trafficclaw_runner.py` profiles). |
 | LLM model | Provider-prefixed name, e.g. `siliconflow/deepseek-ai/DeepSeek-V4-Flash`. |
 | API key | Prompted securely if the provider env var is missing (session-only; export it beforehand for non-interactive use). |
-| Zone | Inner Queens (`inner_queens` in the TUI). Highway/ramp modules use `sumo_config_highway/Inner_Queens_highway/`; other modules use `sumo_config/Inner_Queens/`. |
+| Zone | Queens (`queens` in the TUI). `sumo_config/Queens/`. |
 | Wandb | Enable or disable remote metric logging. |
 
 After the summary screen, confirm to start. The TUI delegates to the same runners as the CLI (`run_single_control/*` or `run_joint_control/run_joint_control.py`), so results are identical to scripted runs.

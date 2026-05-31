@@ -1188,7 +1188,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        default="sumo_config/Manhattan/Manhattan.sumocfg",
         help="Path to SUMO config file"
     )
     parser.add_argument(

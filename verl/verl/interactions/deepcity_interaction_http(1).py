@@ -165,7 +165,7 @@ class DeepCityInteractionHttp(BaseInteraction):
                     config_path = self.config_path
                     if not config_path:
                         # Fallback to hardcoded path
-                        config_path = "/data/zhouyuping/Zone/zone_scenarios/Upper_Manhattan/Upper_Manhattan.sumocfg"
+                        config_path = "/data/zhouyuping/Zone/zone_scenarios/Manhattan/Manhattan.sumocfg"
                         logger.warning(f"No config_path in config, using hardcoded: {config_path}")
 
                     self.http_client.create_master(

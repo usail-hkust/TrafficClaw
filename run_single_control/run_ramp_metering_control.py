@@ -1339,7 +1339,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg",
+        default="sumo_config_highway/Manhattan_highway/Manhattan.sumocfg",
         help="Path to SUMO config file"
     )
     parser.add_argument(

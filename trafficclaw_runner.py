@@ -39,7 +39,7 @@ class RunnerDefaults:
 
 DEFAULTS: Dict[str, RunnerDefaults] = {
     "signal_timing": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,
@@ -50,7 +50,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "highway_speed_limit": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,
@@ -61,7 +61,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "ramp_metering": RunnerDefaults(
-        config="sumo_config_highway/Upper_Manhattan_highway/Upper_Manhattan.sumocfg",
+        config="sumo_config_highway/Manhattan_highway/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,
@@ -72,7 +72,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "bus_scheduling": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,
@@ -83,7 +83,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "subway_scheduling": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=1800,
         step_seconds=30,
@@ -94,7 +94,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "taxi_scheduling": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600,
         checkpoint_interval=1800,
         step_seconds=10,
@@ -105,7 +105,7 @@ DEFAULTS: Dict[str, RunnerDefaults] = {
         temperature=0.0,
     ),
     "joint": RunnerDefaults(
-        config="sumo_config/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        config="sumo_config/Manhattan/Manhattan.sumocfg",
         duration=3600 * 24,
         checkpoint_interval=3600,
         step_seconds=30,

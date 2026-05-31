@@ -12,7 +12,7 @@ Usage:
     # Activate conda environment and run simulation
     conda activate deepcity
     python run_taxi_scheduling.py \
-        --config /data/zhouyuping/Zone/zone_scenarios/Upper_Manhattan/Upper_Manhattan.sumocfg \
+        --config /data/zhouyuping/Zone/zone_scenarios/Manhattan/Manhattan.sumocfg \
         --duration 3600 \
         --checkpoint-interval 300 \
         --step-seconds 10 \
@@ -1305,7 +1305,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="/data/zhouyuping/Zone/zone_scenarios/Upper_Manhattan/Upper_Manhattan.sumocfg",
+        default="/data/zhouyuping/Zone/zone_scenarios/Manhattan/Manhattan.sumocfg",
         help="Path to SUMO config file"
     )
     parser.add_argument(

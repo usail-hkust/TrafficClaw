@@ -317,7 +317,7 @@ class DeepCityInteractionHttp(BaseInteraction):
                     # 兼容旧版本：单环境配置
                     config_path = self.config_path
                     if not config_path:
-                        config_path = "/data/zhouyuping/Zone/zone_scenarios/Upper_Manhattan/Upper_Manhattan.sumocfg"
+                        config_path = "/data/zhouyuping/Zone/zone_scenarios/Manhattan/Manhattan.sumocfg"
                         logger.warning(f"No config_path in config, using hardcoded: {config_path}")
                     environments = None
 
