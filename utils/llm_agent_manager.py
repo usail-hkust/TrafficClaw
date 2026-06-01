@@ -2065,14 +2065,6 @@ class LLMAgentManager:
                 else:
                     comparison_lines.append(f"  = Travel time: {current_highway_tt:.2f}s (SAME as best)")
 
-            # if current_throughput is not None and best_throughput is not None:
-            #     throughput_diff = current_throughput - best_throughput
-            #     if throughput_diff > 0:
-            #         comparison_lines.append(f"  ✓ Throughput: {current_throughput:.2f} (IMPROVED by {throughput_diff:.2f} from best: {best_throughput:.2f})")
-            #     elif throughput_diff < 0:
-            #         comparison_lines.append(f"  ✗ Throughput: {current_throughput:.2f} (WORSE by {abs(throughput_diff):.2f} from best: {best_throughput:.2f})")
-            #     else:
-            #         comparison_lines.append(f"  = Throughput: {current_throughput:.2f} (SAME as best)")
             if current_throughput is not None and best_throughput is not None:
                 throughput_diff = current_throughput - best_throughput
                 if throughput_diff > 0:
@@ -2218,6 +2210,8 @@ class LLMAgentManager:
             best_total_income = best_metrics.get("total_income")
             current_dropoffs = current_metrics.get("passenger_dropoffs")
             best_dropoffs = best_metrics.get("passenger_dropoffs")
+            current_income_per_taxi = current_metrics.get("income_per_taxi")
+            best_income_per_taxi = best_metrics.get("income_per_taxi")
 
             if current_total_income is not None and best_total_income is not None:
                 income_diff = current_total_income - best_total_income
@@ -2237,6 +2231,14 @@ class LLMAgentManager:
                 else:
                     comparison_lines.append(f"  = Passenger dropoffs: {current_dropoffs} (SAME as best)")
 
+            if current_income_per_taxi is not None and best_income_per_taxi is not None:
+                income_per_taxi_diff = current_income_per_taxi - best_income_per_taxi
+                if income_per_taxi_diff > 0:
+                    comparison_lines.append(f"  ✓ Income per taxi: {current_income_per_taxi:.2f} (IMPROVED by {income_per_taxi_diff:.2f} from best: {best_income_per_taxi:.2f})")
+                elif income_per_taxi_diff < 0:
+                    comparison_lines.append(f"  ✗ Income per taxi: {current_income_per_taxi:.2f} (WORSE by {abs(income_per_taxi_diff):.2f} from best: {best_income_per_taxi:.2f})")
+                else:
+                    comparison_lines.append(f"  = Income per taxi: {current_income_per_taxi:.2f} (SAME as best)")
         if len(comparison_lines) == 1:
             # Only header line, no metrics to compare
             return ""
@@ -2474,7 +2476,6 @@ class LLMAgentManager:
                 best_electricity = best_electricity_kwh * 1000.0 if best_electricity_kwh is not None else None
 
                 # Waiting time strictly lower
-                waiting_time_lower = False
                 if current_waiting_time is not None and best_waiting_time is not None:
                     waiting_time_lower = current_waiting_time < best_waiting_time
                 elif current_waiting_time is not None and best_waiting_time is None:
@@ -2483,7 +2484,6 @@ class LLMAgentManager:
                     waiting_time_lower = False
 
                 # Waiting time must NOT increase when electricity improves (strict: no tolerance)
-                waiting_time_acceptable = False
                 if current_waiting_time is not None and best_waiting_time is not None:
                     waiting_time_acceptable = current_waiting_time <= best_waiting_time
                 elif current_waiting_time is not None and best_waiting_time is None:
@@ -2492,7 +2492,6 @@ class LLMAgentManager:
                     waiting_time_acceptable = False
 
                 # Electricity strictly lower
-                electricity_lower = False
                 if current_electricity is not None and best_electricity is not None:
                     electricity_lower = current_electricity < best_electricity
                 elif current_electricity is not None and best_electricity is None:
@@ -2501,7 +2500,6 @@ class LLMAgentManager:
                     electricity_lower = False
 
                 # Electricity lower or at most 25% higher than best
-                electricity_acceptable = False
                 if current_electricity is not None and best_electricity is not None:
                     electricity_acceptable = current_electricity <= best_electricity * 1.05
                 elif current_electricity is not None and best_electricity is None:
@@ -2563,32 +2561,23 @@ class LLMAgentManager:
                 # Taxi: better if total income OR passenger dropoffs improves
                 taxi_metrics_current = filtered_current_module_metrics["taxi_scheduling"]
                 taxi_metrics_best = filtered_best_module_metrics.get("taxi_scheduling", {})
-
+                
                 current_income = taxi_metrics_current.get("total_income")
                 best_income = taxi_metrics_best.get("total_income")
-                current_dropoffs = taxi_metrics_current.get("passenger_dropoffs")
-                best_dropoffs = taxi_metrics_best.get("passenger_dropoffs")
-                current_successful_dispatches = taxi_metrics_current.get("successful_dispatches")
-                best_successful_dispatches = taxi_metrics_best.get("successful_dispatches")
+                current_pickups = taxi_metrics_current.get("passenger_pickups")
+                best_pickups = taxi_metrics_best.get("passenger_pickups")
 
                 income_improved = (
                     current_income is not None
                     and best_income is not None
                     and current_income > best_income
                 )
-                dropoffs_improved = (
-                    current_dropoffs is not None
-                    and best_dropoffs is not None
-                    and current_dropoffs > best_dropoffs
+                pickups_improved = (
+                    current_pickups is not None
+                    and best_pickups is not None
+                    and current_pickups > best_pickups
                 )
-                dispatches_improved = (
-                    current_successful_dispatches is not None
-                    and best_successful_dispatches is not None
-                    and current_successful_dispatches > best_successful_dispatches
-                )
-                module_better = ((income_improved and dropoffs_improved) or
-                                 (income_improved and dispatches_improved))
-
+                module_better = income_improved or pickups_improved
             else:
                 # Unknown module: try to use module's own metrics if available
                 module_metrics_current = filtered_current_module_metrics.get(module_name, {})
