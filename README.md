@@ -227,6 +227,16 @@ export SILICONFLOW_API_KEY=...
 
 For custom OpenAI-compatible endpoints, pass `--base-url`.
 
+### 4. Pretrained model
+
+Our post-trained TrafficClaw-Qwen-8B model is available on Hugging Face:
+
+```text
+https://huggingface.co/TrafficClaw/TrafficClaw-Qwen-8B
+```
+
+You can use `TrafficClaw/TrafficClaw-Qwen-8B` as the model repository path when loading the pretrained model with Hugging Face-compatible tooling.
+
 ## Environment Data
 
 The SUMO environment data is hosted on Hugging Face:
@@ -402,6 +412,8 @@ export SUMO_HOME="$HOME/src/sumo-1.20.0"
 MODEL_PATH="/path/to/base-or-sft-model"
 EXPERIMENT_NAME="trafficclaw_grpo"
 ```
+
+You can set `MODEL_PATH` to `TrafficClaw/TrafficClaw-Qwen-8B` to start from the released pretrained model.
 
 The script already enables GRPO with:
 

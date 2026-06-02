@@ -2561,7 +2561,7 @@ class LLMAgentManager:
                 # Taxi: better if total income OR passenger dropoffs improves
                 taxi_metrics_current = filtered_current_module_metrics["taxi_scheduling"]
                 taxi_metrics_best = filtered_best_module_metrics.get("taxi_scheduling", {})
-                
+
                 current_income = taxi_metrics_current.get("total_income")
                 best_income = taxi_metrics_best.get("total_income")
                 current_pickups = taxi_metrics_current.get("passenger_pickups")
