@@ -1,5 +1,7 @@
 # TrafficClaw
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
+[![Hugging Face Model](https://img.shields.io/badge/Hugging%20Face-TrafficClaw--Qwen--8B-yellow.svg)](https://huggingface.co/TrafficClaw/TrafficClaw-Qwen-8B)
 ```
  ████████╗██████╗  █████╗ ███████╗███████╗██╗ ██████╗
  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██╔════╝██║██╔════╝
