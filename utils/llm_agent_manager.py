@@ -2562,8 +2562,8 @@ class LLMAgentManager:
                 taxi_metrics_current = filtered_current_module_metrics["taxi_scheduling"]
                 taxi_metrics_best = filtered_best_module_metrics.get("taxi_scheduling", {})
 
-                current_income = taxi_metrics_current.get("total_income")
-                best_income = taxi_metrics_best.get("total_income")
+                current_income = taxi_metrics_current.get("income_gini")
+                best_income = taxi_metrics_best.get("income_gini")
                 current_pickups = taxi_metrics_current.get("passenger_pickups")
                 best_pickups = taxi_metrics_best.get("passenger_pickups")
 
@@ -2577,7 +2577,7 @@ class LLMAgentManager:
                     and best_pickups is not None
                     and current_pickups > best_pickups
                 )
-                module_better = income_improved or pickups_improved
+                module_better = pickups_improved and income_improved
             else:
                 # Unknown module: try to use module's own metrics if available
                 module_metrics_current = filtered_current_module_metrics.get(module_name, {})
